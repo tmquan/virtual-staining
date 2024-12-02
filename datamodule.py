@@ -1,5 +1,6 @@
 import os
 import re
+import csv
 import glob
 import json
 import numpy as np
@@ -73,13 +74,14 @@ def parse_filename(filename):
         filename (str): The filename to parse.
         
     Returns:
-        list: A binary vector representing [Instrument, Magnification, Coverslip, Paraffin].
+        list: A binary vector representing [Instrument, Magnification, Paraffin, Coverslip].
     """
     # Define the patterns to extract information
     instrument_pattern = r'(NanoZoomer|P250)'
     magnification_pattern = r'(\d{2})X'
-    coverslip_pattern = r'(uncoverslip|coverslip)'
     paraffin_pattern = r'(no_paraffin|paraffin)'
+    # coverslip_pattern = r'(uncoverslip|coverslip)'
+    coverslip_pattern = r'(aqueouscoverslip|nonaqueouscoverslip|uncoverslip)'
 
     # Initialize binary vector
     binary_vector = [0, 0, 0, 0]
@@ -88,27 +90,46 @@ def parse_filename(filename):
     instrument_match = re.search(instrument_pattern, filename)
     if instrument_match:
         instrument = instrument_match.group(1)
-        binary_vector[0] = 0 if instrument == 'NanoZoomer' else 1
+        # binary_vector[0] = 0 if instrument == 'NanoZoomer' else 1
+        if instrument == 'NanoZoomer':
+            binary_vector[0] = 0
+        else:
+            binary_vector[0] = 1
 
     # Extract magnification
     magnification_match = re.search(magnification_pattern, filename)
     if magnification_match:
         magnification = int(magnification_match.group(1))
-        binary_vector[1] = 0 if magnification == 20 else 1
-
-    # Extract coverslip information
-    coverslip_match = re.search(coverslip_pattern, filename)
-    if coverslip_match:
-        coverslip_type = coverslip_match.group(1)
-        binary_vector[2] = 0 if coverslip_type == 'uncoverslip' else 1
+        # binary_vector[1] = 0 if magnification == 20 else 1
+        if magnification == 20:
+            binary_vector[1] = 0
+        else: # elif magnification == 40:
+            binary_vector[1] = 1
 
     # Extract paraffin information
     paraffin_match = re.search(paraffin_pattern, filename)
     if paraffin_match:
         paraffin_type = paraffin_match.group(1)
-        binary_vector[3] = 0 if paraffin_type == 'no_paraffin' else 1
+        # binary_vector[2] = 0 if paraffin_type == 'no_paraffin' else 1
+        if paraffin_type == 'no_paraffin':
+            binary_vector[2] = 0
+        else: # elif paraffin_type == 'paraffin':
+            binary_vector[2] = 1
+
+    # Extract coverslip information
+    coverslip_match = re.search(coverslip_pattern, filename)
+    if coverslip_match:
+        coverslip_type = coverslip_match.group(1)
+        # binary_vector[3] = 0 if coverslip_type == 'uncoverslip' else 1
+        if coverslip_type == 'aqueouscoverslip':
+            binary_vector[3] = 0
+        elif coverslip_type == 'nonaqueouscoverslip':
+            binary_vector[3] = 1
+        elif coverslip_type == 'uncoverslip':
+            binary_vector[3] = 2
 
     return binary_vector
+
 
 class LongestAxisCropDict(CropDict):
     """
@@ -207,23 +228,6 @@ class PairedDataset(CacheDataset, Randomizable):
             data["imageB"] = self.data[fixed]["imageB"]
             data["labelA"] = self.data[fixed]["labelA"]
             data["labelB"] = self.data[fixed]["labelB"]
-        # # print(len(self.data))
-        # for key in self.keys:
-        #     if self.is_training:
-        #         rand_idx = self.R.randint(0, len(self.data))
-        #         # print(rand_idx, len(self.data))
-        #         data[key] = self.data[rand_idx][key]
-        #          # data[key] = dataset[index]
-        #         data[f"{key}_idx"] = rand_idx
-        #         # # Add the filename to the data dictionary
-        #         data[f"{key}_pth"] = self.data[rand_idx][key]  # Assuming "image3d" contains the filename
-        #     else:
-        #         fixed_idx = self.R.randint(0, len(self.data))
-        #         data[key] = self.data[fixed_idx][key]
-        #          # data[key] = dataset[index]
-        #         data[f"{key}_idx"] = fixed_idx
-        #         # # Add the filename to the data dictionary
-        #         data[f"{key}_pth"] = self.data[fixed_idx][key]  # Assuming "image3d" contains the filename
             
         if self.transform is not None:
             data = apply_transform(self.transform, data)
@@ -290,8 +294,8 @@ class PairedDataModule(LightningDataModule):
                     else:
                         print(f"Size mismatch: {imageA} size {imgA.size} vs {imageB} size {imgB.size}")
       
-        pprint(self.image_pairs)
-        pprint(f"Total pairs: {len(self.image_pairs)}")
+        print(self.image_pairs)
+        print(f"Total pairs: {len(self.image_pairs)}")
         filename = 'data.json'
         with open(filename, 'w') as json_file:
             json.dump(self.image_pairs, json_file, indent=4, cls=NumpyEncoder)
@@ -306,10 +310,10 @@ class PairedDataModule(LightningDataModule):
         transform_pipeline = Compose([
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            OneOf([
-                LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=1),
-                LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=3),
-            ]), 
+            # OneOf([
+            #     LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=1),
+            #     LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=3),
+            # ]), 
             RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             ScaleIntensityRangeDict(keys=["imageA", "imageB"], 
                 clip=True,
@@ -340,9 +344,9 @@ class PairedDataModule(LightningDataModule):
         transform_pipeline = Compose([
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            OneOf([
-                LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=2),
-            ]), 
+            # OneOf([
+            #     LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=2),
+            # ]), 
             RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             ScaleIntensityRangeDict(keys=["imageA", "imageB"], 
                 clip=True,
@@ -418,16 +422,16 @@ if __name__ == "__main__":
     )
     
     datamodule.setup()
-    for data in datamodule.val_dataloader():
-        # print(data["imageA"].shape)
-        # print(data["imageB"].shape)
-        # print(data["labelB"].shape)
-        pprint([
-            data["imageA"],
-            data["imageB"],
-            data["labelA"],
-            data["labelB"],
-        ])
-        print('\n')
-        break
+    # for data in datamodule.val_dataloader():
+    #     # print(data["imageA"].shape)
+    #     # print(data["imageB"].shape)
+    #     # print(data["labelB"].shape)
+    #     pprint([
+    #         data["imageA"],
+    #         data["imageB"],
+    #         data["labelA"],
+    #         data["labelB"],
+    #     ])
+    #     print('\n')
+    #     break
 

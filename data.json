@@ -1,0 +1,770 @@
+[
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/12_WJT-VS-noparaffin-coverslip-BF-40X-Slide4_AIN1-NZ_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-40X-Slide4_AIN1-NZ_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-08-29 10p08p17_trim_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-12 10p53p21_trim_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/11_WJT-VS-noparaffin-coverslip-BF-20X-Slide4_AIN1-NZ  - 2024-09-26 09p28p08_trim_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-20 09p32p32_trim_cropped6_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session6/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped6_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/12_WJT-VS-noparaffin-coverslip-BF-40X-Slide4_AIN1-NZ_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-40X-Slide4_AIN1-NZ_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-08-29 10p08p17_trim_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-12 10p53p21_trim_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/11_WJT-VS-noparaffin-coverslip-BF-20X-Slide4_AIN1-NZ  - 2024-09-26 09p28p08_trim_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-20 09p32p32_trim_cropped5_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session5/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped5_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/12_WJT-VS-noparaffin-coverslip-BF-40X-Slide4_AIN1-NZ_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-40X-Slide4_AIN1-NZ_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-08-29 10p08p17_trim_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-12 10p53p21_trim_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/11_WJT-VS-noparaffin-coverslip-BF-20X-Slide4_AIN1-NZ  - 2024-09-26 09p28p08_trim_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-20 09p32p32_trim_cropped4_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session4/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped4_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/12_WJT-VS-noparaffin-coverslip-BF-40X-Slide4_AIN1-NZ_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-40X-Slide4_AIN1-NZ_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-08-29 10p08p17_trim_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-12 10p53p21_trim_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/11_WJT-VS-noparaffin-coverslip-BF-20X-Slide4_AIN1-NZ  - 2024-09-26 09p28p08_trim_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-20 09p32p32_trim_cropped3_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session3/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped3_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/12_WJT-VS-noparaffin-coverslip-BF-40X-Slide4_AIN1-NZ_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-40X-Slide4_AIN1-NZ_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-08-29 10p08p17_trim_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-12 10p53p21_trim_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/11_WJT-VS-noparaffin-coverslip-BF-20X-Slide4_AIN1-NZ  - 2024-09-26 09p28p08_trim_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-20 09p32p32_trim_cropped2_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session2/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped2_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition8_NanoZoomer_40X_paraffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-40X-Slide4_AIN1-NZ_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/12_WJT-VS-noparaffin-coverslip-BF-40X-Slide4_AIN1-NZ_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-40X-Slide4_AIN1-NZ_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF/16_WJT-VS-HE-BF-40X-Slide4_AIN1-NZ_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            1,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            1,
+            1,
+            0
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/01_WJT-VS-paraffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-08-29 10p08p17_trim_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/05_WJT-VS-noparaffin-uncoverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-12 10p53p21_trim_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            2
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            2
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/11_WJT-VS-noparaffin-coverslip-BF-20X-Slide4_AIN1-NZ  - 2024-09-26 09p28p08_trim_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            1
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            1
+        ]
+    },
+    {
+        "imageA": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/10_WJT-VS-noparaffin-Glycerol-coverslip-BF-20X-Slide4_AIN1-NZ - 2024-09-20 09p32p32_trim_cropped1_reg_full_section_fixed.tiff",
+        "imageB": "data/ACT2_co-register/Subject4_Slide4AIN1/Session1/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF/15_WJT-VS-HE-BF-20X-Slide4_AIN1-NZ - 2024-10-04 11p38p55_trim_cropped1_full_section_fixed.tiff",
+        "labelA": [
+            0,
+            0,
+            1,
+            0
+        ],
+        "labelB": [
+            0,
+            0,
+            1,
+            0
+        ]
+    }
+]

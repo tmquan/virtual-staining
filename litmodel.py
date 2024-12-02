@@ -67,9 +67,9 @@ class LightningModule(LightningModule):
             spatial_dims=2,
             in_channels=3,
             out_channels=3,
-            num_channels=[256, 256, 512],
-            attention_levels=[False, False, True],
-            num_head_channels=[0, 0, 512],
+            num_channels=[256, 256, 512, 512],
+            attention_levels=[False, False, True, True],
+            num_head_channels=[0, 0, 512, 512],
             num_res_blocks=2,
             with_conditioning=True, 
             cross_attention_dim=4, # Condition with NZ/P250 20X|40X Un/coverslip no_|paraffin
