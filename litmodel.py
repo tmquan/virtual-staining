@@ -16,9 +16,11 @@ from monai.utils import optional_import
 from monai.metrics import PSNRMetric, SSIMMetric
 tqdm, has_tqdm = optional_import("tqdm", name="tqdm")
 
-from generative.inferers import DiffusionInferer
-from generative.networks.nets import DiffusionModelUNet
-from generative.networks.schedulers import DDPMScheduler, DDIMScheduler
+from monai.utils import optional_import
+from monai.networks.nets import UNet, VNet, UNETR, SwinUNETR, BasicUNet, ViTAutoEnc, AttentionUnet
+from monai.inferers import DiffusionInferer
+from monai.networks.nets import DiffusionModelUNet
+from monai.networks.schedulers import DDPMScheduler
 
 from typing import Any, Callable, Dict, Optional, OrderedDict, Tuple, List
 from lightning.pytorch import LightningModule
@@ -67,15 +69,16 @@ class LightningModule(LightningModule):
             spatial_dims=2,
             in_channels=3,
             out_channels=3,
-            num_channels=[256, 256, 512, 512],
-            attention_levels=[False, False, True, True],
-            num_head_channels=[0, 0, 512, 512],
+            channels=[256, 256, 512],
+            attention_levels=[False, False, True],
+            num_head_channels=[0, 0, 512],
             num_res_blocks=2,
             with_conditioning=True, 
-            cross_attention_dim=4, # Condition with NZ/P250 20X|40X Un/coverslip no_|paraffin
-            upcast_attention=True,
-            use_flash_attention=True,
-            dropout_cattn=0.5
+            cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
+            # upcast_attention=True,
+            # use_flash_attention=True,
+            # use_combined_linear=True,
+            # dropout_cattn=0.5
         )
         init_weights(self.unet2d_model, init_type="normal", init_gain=0.01)
         self.p20loss = PerceptualLoss(
@@ -83,7 +86,7 @@ class LightningModule(LightningModule):
             network_type="vgg", 
             is_fake_3d=False, 
             pretrained=True,
-        ) 
+        ).eval() 
         
         
         if model_cfg.phase=="finetune":
@@ -123,8 +126,10 @@ class LightningModule(LightningModule):
         # print(labelB)
 
         estimB = self.forward_pix2pix_condition(imageA, labelB)
-        loss = self.train_cfg.alpha * F.l1_loss(estimB, imageB) \
-             + self.train_cfg.lamda * self.p20loss(estimB, imageB) 
+        loss = self.train_cfg.alpha * F.l1_loss(estimB, imageB) 
+        
+        if self.p20loss is not None:
+            loss += self.train_cfg.lamda * self.p20loss(estimB, imageB) 
             
         self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
         
@@ -194,7 +199,7 @@ class LightningModule(LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
-            self.parameters(), lr=self.train_cfg.lr, betas=(0.5, 0.999)
+            self.unet2d_model.parameters(), lr=self.train_cfg.lr, betas=(0.5, 0.999)
         )
         scheduler = torch.optim.lr_scheduler.MultiStepLR(
             optimizer, #

@@ -374,7 +374,7 @@ class PairedDataModule(LightningDataModule):
             batch_size=self.batch_size,
             num_workers=4,
             collate_fn=pad_list_data_collate,
-            shuffle=False,
+            shuffle=True,
         )
     
     def test_dataloader(self):
