@@ -46,6 +46,9 @@ def main(cfg: DictConfig):
         root_folder=cfg.data.root_folder,
         batch_size=cfg.data.batch_size,
         img_shape=cfg.data.img_shape,
+        train_folders=cfg.data.train_folders,
+        val_folders=cfg.data.val_folders,
+        test_folders=cfg.data.test_folders,
         train_samples=cfg.data.train_samples,
         val_samples=cfg.data.val_samples,
         test_samples=cfg.data.test_samples

@@ -8,7 +8,14 @@ defaults:
   - override hydra/job_logging: disabled
 
 data:
-  root_folder: "data"
+  root_folder: "data/ACT2_co-register/"
+  train_folders:
+  - Subject2_Slide2
+  - Subject4_Slide4AIN1
+  val_folders:
+  - Subject1_Slide1
+  test_folders:
+  - Subject1_Slide1
   train_samples: 2000
   val_samples: 400
   test_samples: null

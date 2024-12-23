@@ -6,7 +6,7 @@ import json
 import numpy as np
 
 from pprint import pprint
-from typing import Callable, Optional, Sequence, List
+from typing import Callable, Optional, Sequence, List, Dict
 from argparse import ArgumentParser
 from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
@@ -192,6 +192,70 @@ class LongestAxisCropDict(CropDict):
         return d
 
 
+class RandCropByColorDict(RandCropByPosNegLabelDict):
+    """
+    Custom transform to randomly crop image areas based on RGB values in the label image,
+    focusing on areas that are likely to be pink or purple.
+    """
+
+    def __init__(
+        self,
+        keys: Sequence[str],
+        label_key: str,
+        spatial_size: Sequence[int] | int,
+        num_samples: int = 1,
+        pink_threshold: float = 0.5,
+        purple_threshold: float = 0.5,
+        allow_smaller: bool = False,
+        lazy: bool = False,
+    ) -> None:
+        super().__init__(
+            keys=keys,
+            label_key=label_key,
+            spatial_size=spatial_size,
+            pos=1.0,  # Not used directly
+            neg=1.0,  # Not used directly
+            num_samples=num_samples,
+            allow_smaller=allow_smaller,
+            lazy=lazy
+        )
+        self.pink_threshold = pink_threshold
+        self.purple_threshold = purple_threshold
+
+    def check_color(self, label: torch.Tensor) -> bool:
+        """
+        Check if the labeled regions contain more pink or purple pixels than defined thresholds.
+        """
+        # Define masks for pink and purple colors based on RGB values
+        pink_mask = (label[..., 0] > 150) & (label[..., 1] < 100) & (label[..., 2] > 150)
+        purple_mask = (label[..., 0] < 100) & (label[..., 1] < 100) & (label[..., 2] > 150)
+
+        # Calculate proportions of pink and purple pixels
+        total_pixels = label.numel() // label.shape[-1]
+        
+        pink_ratio = pink_mask.sum().item() / total_pixels
+        purple_ratio = purple_mask.sum().item() / total_pixels
+
+        return pink_ratio > self.pink_threshold or purple_ratio > self.purple_threshold
+
+    def __call__(self, data: Mapping[Hashable, torch.Tensor], lazy: bool | None = None) -> List[dict[Hashable, torch.Tensor]]:
+        d = dict(data)
+
+        # Initialize returned list with shallow copy to preserve key ordering
+        ret: List[dict] = [dict(d) for _ in range(self.num_samples)]
+
+        for i in range(self.num_samples):
+            while True:
+                # Randomly select a crop center based on color criteria
+                sampled_data = super().__call__(data, lazy=lazy)[i]
+                label_patch = sampled_data[self.label_key]  # Get corresponding label patch
+
+                if self.check_color(label_patch):
+                    ret[i].update(sampled_data)
+                    break
+
+        return ret
+    
 class PairedDataset(CacheDataset, Randomizable):
     def __init__(
         self,
@@ -243,200 +307,213 @@ class PairedDataModule(LightningDataModule):
         root_folder: str,
         batch_size: int = 32,
         img_shape: int = 512,
+        train_folders: List[str] = None,
+        val_folders: List[str] = None,
+        test_folders: List[str] = None,
         train_samples: int = 2000,
         val_samples: int = 400,
-        test_samples: int | None = None,
+        test_samples: Optional[int] = None,
     ):
         super().__init__()
+        self.root_folder = root_folder
+        self.batch_size = batch_size
+        self.img_shape = img_shape
+        self.train_folders = [os.path.join(self.root_folder, folder) for folder in train_folders] or []
+        self.val_folders = [os.path.join(self.root_folder, folder) for folder in val_folders] or []
+        self.test_folders = [os.path.join(self.root_folder, folder) for folder in test_folders] or []
         self.train_samples = train_samples
         self.val_samples = val_samples
         self.test_samples = test_samples
-        self.img_shape = img_shape
-        self.batch_size = batch_size
         
-        # Find all subfolders in the root directory
-        self.paired_folders = [f.path for f in os.scandir(root_folder) if f.is_dir()]
+        # Initialize lists to hold valid image pairs for each dataset type
+        self.train_image_pairs: List[Dict] = []
+        self.valid_image_pairs: List[Dict] = []
+        self.test_image_pairs: List[Dict] = []
         
-        # Initialize lists to hold valid image pairs
-        self.image_pairs: List[dict] = []
+        print(self.train_folders)
+        print(self.val_folders)
+        print(self.test_folders)
+        # Load image pairs from specified folders
+        self._load_image_pairs()
 
-        # Use glob to find all subdirectories containing "Training" and check for TIFF files
-        if self.test_samples is None:
-            folders = glob.glob(os.path.join(root_folder, '*/**/'), recursive=True)
-        else:
-            folders = [root_folder]
-            # folders = glob.glob(os.path.join(root_folder, '*'), recursive=True)
-        print(len(folders))
+    def _load_image_pairs(self):
+        # Load image pairs for training folders
+        for subdir in self.train_folders:
+            self._load_pairs_from_folder(subdir, self.train_image_pairs)
+
+        # Load image pairs for validation folders
+        for subdir in self.val_folders:
+            self._load_pairs_from_folder(subdir, self.valid_image_pairs)
+
+        # Load image pairs for testing folders (if specified)
+        for subdir in self.test_folders:
+            self._load_pairs_from_folder(subdir, self.test_image_pairs)
+
+        print(f"Total training pairs found: {len(self.train_image_pairs)}")
+        print(f"Total validation pairs found: {len(self.valid_image_pairs)}")
+        print(f"Total testing pairs found: {len(self.test_image_pairs)}")
+
+        # Save the paired images to a JSON file for reference (optional)
+        all_image_pairs = {
+            "train": self.train_image_pairs,
+            "val": self.valid_image_pairs,
+            "test": self.test_image_pairs
+        }
+        
+        with open('data.json', 'w') as json_file:
+            json.dump(all_image_pairs, json_file, indent=4, cls=NumpyEncoder)
+            print("Saved image pairs to data.json")
+
+    def _load_pairs_from_folder(self, folder: str, image_pair_list: List[Dict]):
+        folders = glob.glob(os.path.join(folder, '*/**/'), recursive=True)
         for subdir in folders:
             image_files = glob.glob(os.path.join(subdir, "*.tiff"))
-            # Check for "HE" in filenames and assign accordingly
+            
             imageA, imageB = None, None
+            
             for image_file in image_files:
                 if "HE" not in os.path.basename(image_file):
                     imageA = image_file  # Assign to imageA if "HE" is not found
-                    labelA = parse_filename(os.path.dirname(imageA))
-                    labelA = np.array(labelA)
                 else:
                     imageB = image_file  # Assign to imageB if "HE" is found
-                    labelB = parse_filename(os.path.dirname(imageB))
-                    labelB = np.array(labelB)
-            
             
             # Ensure both images are assigned before appending
-            if imageA and imageB:
-                # Verify that both images have the same size
-                with Image.open(imageA) as imgA, Image.open(imageB) as imgB:
-                    if imgA.size == imgB.size:
-                        self.image_pairs.append({
-                            "imageA": imageA,
-                            "imageB": imageB,
-                            "labelA": labelB,
-                            "labelB": labelB,
-                        })
-                    else:
-                        print(f"Size mismatch: {imageA} size {imgA.size} vs {imageB} size {imgB.size}")
-      
-        print(self.image_pairs)
-        print(f"Total pairs: {len(self.image_pairs)}")
-        filename = 'data.json'
-        with open(filename, 'w') as json_file:
-            json.dump(self.image_pairs, json_file, indent=4, cls=NumpyEncoder)
-            print(f"Saved image pairs to {filename}")
+            if imageA and imageB and self._images_have_same_size(imageA, imageB):
+                labelA = parse_filename(os.path.dirname(imageA))
+                labelB = parse_filename(os.path.dirname(imageB))
+                image_pair_list.append({
+                    "imageA": imageA,
+                    "imageB": imageB,
+                    "labelA": np.array(labelA),
+                    "labelB": np.array(labelB),
+                })
+
+    def _images_have_same_size(self, imgA_path: str, imgB_path: str) -> bool:
+        with Image.open(imgA_path) as imgA, Image.open(imgB_path) as imgB:
+            if imgA.size != imgB.size:
+                print(f"Size mismatch: {imgA_path} size {imgA.size} vs {imgB_path} size {imgB.size}")
+                return False
+            return True
 
     def setup(self, seed: int = 2222, stage: Optional[str] = None):
         set_determinism(seed=seed)
 
-    
-    def train_dataloader(self):
-        # Define transformations using MONAI
-        transform_pipeline = Compose([
-            LoadImageDict(keys=["imageA", "imageB"], image_only=True),
-            EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            # OneOf([
-            #     LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=1),
-            #     LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=3),
-            # ]), 
-            
-            RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
-            RandAxisFlipDict(keys=["imageA", "imageB"], prob=0.75),
-            RandRotate90Dict(keys=["imageA", "imageB"], prob=0.75),
-            ScaleIntensityRangeDict(keys=["imageA", "imageB"], 
-                clip=True,
-                a_min=0.0,
-                a_max=255.0,
-                b_min=0.0,
-                b_max=1.0,),
-            # HistogramNormalizeDict(keys=["imageA", "imageB"], min=0.0, max=1.0,),
-            ToTensorDict(keys=["imageA", "imageB", "labelB"]),
-            # ToTensorDict(keys=["labelB"]),
-        ])
-      
-        return ThreadDataLoader(
-            PairedDataset(
-                keys=["imageA", "imageB", "labelB"],
-                data=self.image_pairs, 
-                transform=transform_pipeline, 
-                length=self.train_samples,
-            ), 
-            batch_size=self.batch_size,
-            num_workers=16,
-            collate_fn=pad_list_data_collate,
-            shuffle=True,
-        )
-    
-    def val_dataloader(self):
-       # Define transformations using MONAI
-        transform_pipeline = Compose([
-            LoadImageDict(keys=["imageA", "imageB"], image_only=True),
-            EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            # OneOf([
-            #     LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=2),
-            # ]), 
-            RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
-            ScaleIntensityRangeDict(keys=["imageA", "imageB"], 
-                clip=True,
-                a_min=0.0,
-                a_max=255.0,
-                b_min=0.0,
-                b_max=1.0,),
-            # HistogramNormalizeDict(keys=["imageA", "imageB"], min=0.0, max=1.0,),
-            ToTensorDict(keys=["imageA", "imageB", "labelB"]),
-            # ToTensorDict(keys=["labelB"]),
-        ])
-    
-        return ThreadDataLoader(
-            PairedDataset(
-                keys=["imageA", "imageB", "labelB"],
-                data=self.image_pairs, 
-                transform=transform_pipeline, 
-                length=self.val_samples,
-            ), 
-            batch_size=self.batch_size,
-            num_workers=4,
-            collate_fn=pad_list_data_collate,
-            shuffle=True,
-        )
-    
-    def test_dataloader(self):
-       # Define transformations using MONAI
+    def _get_dataloader(self, samples: Optional[int], shuffle: bool, data_type: str) -> ThreadDataLoader:
         transform_pipeline = Compose([
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
             OneOf([
-                LongestAxisCropDict(keys=["imageA", "imageB"], crop_choice=2),
-            ]), 
-            RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
-            ScaleIntensityRangeDict(keys=["imageA", "imageB"], 
-                clip=True,
-                a_min=0.0,
-                a_max=255.0,
-                b_min=0.0,
-                b_max=1.0,),
-            # HistogramNormalizeDict(keys=["imageA", "imageB"], min=0.0, max=1.0,),
+                RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", spatial_size=self.img_shape),
+                RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
+            ]),
+            RandAxisFlipDict(keys=["imageA", "imageB"], prob=0.75),
+            RandRotate90Dict(keys=["imageA", "imageB"], prob=0.75),
+            ScaleIntensityRangeDict(keys=["imageA", "imageB"], clip=True, a_min=0.0, a_max=255.0, b_min=0.0, b_max=1.0),
             ToTensorDict(keys=["imageA", "imageB", "labelB"]),
-            # ToTensorDict(keys=["labelB"]),
         ])
-    
+        
+        data_source = {
+            'train': self.train_image_pairs,
+            'val': self.valid_image_pairs,
+            'test': self.test_image_pairs
+        }[data_type]
+
         return ThreadDataLoader(
             PairedDataset(
                 keys=["imageA", "imageB", "labelB"],
-                data=self.image_pairs, 
-                transform=transform_pipeline, 
-                length=self.test_samples,
-            ), 
+                data=data_source,
+                transform=transform_pipeline,
+                length=samples,
+            ),
             batch_size=self.batch_size,
-            num_workers=16,
+            num_workers=16 if shuffle else 4,
             collate_fn=pad_list_data_collate,
-            shuffle=False,
+            shuffle=shuffle,
         )
 
-if __name__ == "__main__":
-    from argparse import ArgumentParser
+    def train_dataloader(self):
+        return self._get_dataloader(samples=self.train_samples, shuffle=True, data_type='train')
+
+    def val_dataloader(self):
+        return self._get_dataloader(samples=self.val_samples, shuffle=False, data_type='val')
+
+    def test_dataloader(self):
+        return self._get_dataloader(samples=self.test_samples, shuffle=False, data_type='test')
     
+
+def main():
     parser = ArgumentParser()
-    parser.add_argument("--root_folder", type=str, required=True, help="Root folder containing subfolders with TIFF files.")
-    parser.add_argument("--batch_size", type=int, default=4, help="Batch size.")
+    parser.add_argument("--root_folder", 
+        type=str, 
+        required=True, 
+        help="Root folder containing subfolders with TIFF files.", 
+        default="data/ACT2_co-register")
+    parser.add_argument("--batch_size", 
+        type=int, 
+        default=4, 
+        help="Batch size.")
+    
+    # Add arguments for folder lists (optional)
+    parser.add_argument("--train_folders", 
+        type=str, 
+        nargs='+', 
+        help="List of training folder paths.",
+        default="Subject2_Slide2,Subject4_Slide4AIN1")
+    parser.add_argument("--val_folders", 
+        type=str, 
+        nargs='+', 
+        help="List of validation folder paths.",
+        default="Subject1_Slide1")
+    parser.add_argument("--test_folders", 
+        type=str, 
+        nargs='+', 
+        help="List of testing folder paths.", 
+        default="Subject1_Slide1")
 
     hparams = parser.parse_args()
 
-    # Create paired data module
+    # Create paired data module with specified arguments
     datamodule = PairedDataModule(
         root_folder=hparams.root_folder,
         batch_size=hparams.batch_size,
-        img_shape=256,
+        train_folders=hparams.train_folders,
+        val_folders=hparams.val_folders,
+        test_folders=hparams.test_folders,
+        img_shape=256  # Example shape; can be adjusted as needed.
     )
-    
+
     datamodule.setup()
-    # for data in datamodule.val_dataloader():
-    #     # print(data["imageA"].shape)
-    #     # print(data["imageB"].shape)
-    #     # print(data["labelB"].shape)
-    #     pprint([
-    #         data["imageA"],
-    #         data["imageB"],
-    #         data["labelA"],
-    #         data["labelB"],
-    #     ])
-    #     print('\n')
-    #     break
+
+if __name__ == "__main__":
+    main()
+
+# if __name__ == "__main__":
+#     from argparse import ArgumentParser
+    
+#     parser = ArgumentParser()
+#     parser.add_argument("--root_folder", type=str, required=True, help="Root folder containing subfolders with TIFF files.")
+#     parser.add_argument("--batch_size", type=int, default=4, help="Batch size.")
+
+#     hparams = parser.parse_args()
+
+#     # Create paired data module
+#     datamodule = PairedDataModule(
+#         root_folder=hparams.root_folder,
+#         batch_size=hparams.batch_size,
+#         img_shape=256,
+#     )
+    
+#     datamodule.setup()
+#     # for data in datamodule.val_dataloader():
+#     #     # print(data["imageA"].shape)
+#     #     # print(data["imageB"].shape)
+#     #     # print(data["labelB"].shape)
+#     #     pprint([
+#     #         data["imageA"],
+#     #         data["imageB"],
+#     #         data["labelA"],
+#     #         data["labelB"],
+#     #     ])
+#     #     print('\n')
+#     #     break
 
