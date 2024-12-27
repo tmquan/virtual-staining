@@ -75,19 +75,20 @@ class LightningModule(LightningModule):
             num_res_blocks=2,
             with_conditioning=True, 
             cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
-            # upcast_attention=True,
-            # use_flash_attention=True,
-            # use_combined_linear=True,
-            # dropout_cattn=0.5
+            upcast_attention=True,
+            use_flash_attention=True,
+            use_combined_linear=True,
+            dropout_cattn=0.5
         )
         init_weights(self.unet2d_model, init_type="normal", init_gain=0.01)
+
+        # self.p20loss = None
         self.p20loss = PerceptualLoss(
             spatial_dims=2, 
             network_type="vgg", 
             is_fake_3d=False, 
             pretrained=True,
         ).eval() 
-        
         
         if model_cfg.phase=="finetune":
             pass
@@ -122,14 +123,24 @@ class LightningModule(LightningModule):
         labelB = batch["labelB"].unsqueeze(-2) * 1.0
         _device = batch["imageA"].device
         B = imageA.shape[0]
-        # print(imageA.shape, imageB.shape)
-        # print(labelB)
-
-        estimB = self.forward_pix2pix_condition(imageA, labelB)
-        loss = self.train_cfg.alpha * F.l1_loss(estimB, imageB) 
         
+        A_to_B = torch.cat([torch.zeros_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
+        B_to_A = torch.cat([torch.ones_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
+
+        estimAB = self.forward_pix2pix_condition(imageA, A_to_B)
+        estimBA = self.forward_pix2pix_condition(imageB, B_to_A)
+        
+        estimABA = self.forward_pix2pix_condition(estimAB, B_to_A)
+        estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B)
+
+        loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+             + self.train_cfg.alpha * F.l1_loss(estimBA, imageA) \
+             + self.train_cfg.alpha * F.l1_loss(estimBAB, imageB) \
+             + self.train_cfg.alpha * F.l1_loss(estimABA, imageA) \
+             
         if self.p20loss is not None:
-            loss += self.train_cfg.lamda * self.p20loss(estimB, imageB) 
+            loss += self.train_cfg.lamda * self.p20loss(estimAB, imageB) \
+                  + self.train_cfg.lamda * self.p20loss(estimBA, imageA) \
             
         self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
         
@@ -137,7 +148,7 @@ class LightningModule(LightningModule):
         if batch_idx == 0:
             # Sampling step for X-ray
             with torch.no_grad():
-                viz2d = torch.cat([imageA, imageB, estimB, ], dim=-1)
+                viz2d = torch.cat([imageA, imageB, estimAB, estimABA, estimBA, estimBAB], dim=-1)
                 tensorboard = self.logger.experiment
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)    
@@ -160,10 +171,16 @@ class LightningModule(LightningModule):
         _device = batch["imageA"].device
         B = imageA.shape[0]
 
-        estimB = self.forward_pix2pix_condition(imageA, labelB)
+        A_to_B = torch.cat([torch.zeros_like(labelB), labelB[...,1:]], dim=-1)
+        B_to_A = torch.cat([torch.ones_like(labelB), labelB[...,1:]], dim=-1)
+        estimAB = self.forward_pix2pix_condition(imageA, A_to_B)
+        estimABA = self.forward_pix2pix_condition(estimAB, B_to_A)
+
+        estimBA = self.forward_pix2pix_condition(imageB, B_to_A)
+        estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B)
         # print(imageA.shape, imageB.shape, labelB.shape)
-        psnr = self.psnr(estimB, imageB)
-        ssim = self.ssim(estimB, imageB)
+        psnr = self.psnr(estimAB, imageB)
+        ssim = self.ssim(estimAB, imageB)
         self.psnr_outputs.append(psnr)
         self.ssim_outputs.append(ssim)
     

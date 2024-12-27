@@ -16,15 +16,15 @@ data:
   - Subject1_Slide1
   test_folders:
   - Subject1_Slide1
-  train_samples: 2000
+  train_samples: 4000
   val_samples: 400
   test_samples: null
   img_shape: 256
   vol_shape: 256
-  batch_size: 4
+  batch_size: 2
 
 model:
-  phase: "pretrain"
+  phase: "unet"
   timesteps: 1000
   prediction_type: "sample" # "sample" or "epsilon" or "v_prediction"
   img_shape: ${data.img_shape}
@@ -34,7 +34,7 @@ model:
 train:
   ckpt: ${resume_from_checkpoint}
   strict: 1 if ${resume_from_checkpoint} is not None else 0
-  lr: 2e-5
+  lr: 5e-5
   alpha: 1
   gamma: 1
   perceptual: false
@@ -60,8 +60,9 @@ trainer:
 callbacks:
   - _target_: lightning.pytorch.callbacks.ModelCheckpoint
     monitor: "validation_loss_epoch"
+    mode: "min"
     auto_insert_metric_name: true
-    save_top_k: -1
+    save_top_k: 2
     save_last: true
     every_n_epochs: 20
   - _target_: lightning.pytorch.callbacks.LearningRateMonitor

@@ -222,13 +222,27 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         self.pink_threshold = pink_threshold
         self.purple_threshold = purple_threshold
 
+    def randomize(
+        self,
+        label: Optional[torch.Tensor] = None,
+        fg_indices: Optional[np.ndarray] = None,
+        bg_indices: Optional[np.ndarray] = None,
+        image: Optional[torch.Tensor] = None,
+    ) -> None:
+        """
+        Randomizes the state for cropping based on the label and other inputs.
+        This method can be expanded based on specific requirements.
+        """
+        # Call the parent's randomize method to handle any base functionality
+        super().randomize(label=label, fg_indices=fg_indices, bg_indices=bg_indices, image=image)
+
     def check_color(self, label: torch.Tensor) -> bool:
         """
         Check if the labeled regions contain more pink or purple pixels than defined thresholds.
         """
         # Define masks for pink and purple colors based on RGB values
-        pink_mask = (label[..., 0] > 150) & (label[..., 1] < 100) & (label[..., 2] > 150)
-        purple_mask = (label[..., 0] < 100) & (label[..., 1] < 100) & (label[..., 2] > 150)
+        pink_mask = (label[0] > 150) & (label[1] < 100) & (label[2] > 150)
+        purple_mask = (label[0] < 100) & (label[1] < 100) & (label[2] > 150)
 
         # Calculate proportions of pink and purple pixels
         total_pixels = label.numel() // label.shape[-1]
@@ -242,9 +256,9 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         d = dict(data)
 
         # Initialize returned list with shallow copy to preserve key ordering
-        ret: List[dict] = [dict(d) for _ in range(self.num_samples)]
+        ret: List[dict] = [dict(d) for _ in range(self.cropper.num_samples)]
 
-        for i in range(self.num_samples):
+        for i in range(self.cropper.num_samples):
             while True:
                 # Randomly select a crop center based on color criteria
                 sampled_data = super().__call__(data, lazy=lazy)[i]
@@ -402,10 +416,11 @@ class PairedDataModule(LightningDataModule):
         transform_pipeline = Compose([
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            OneOf([
-                RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", spatial_size=self.img_shape),
-                RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
-            ]),
+            # OneOf([
+            #     RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", spatial_size=self.img_shape),
+            #     RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
+            # ]),
+            RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             RandAxisFlipDict(keys=["imageA", "imageB"], prob=0.75),
             RandRotate90Dict(keys=["imageA", "imageB"], prob=0.75),
             ScaleIntensityRangeDict(keys=["imageA", "imageB"], clip=True, a_min=0.0, a_max=255.0, b_min=0.0, b_max=1.0),
@@ -435,7 +450,7 @@ class PairedDataModule(LightningDataModule):
         return self._get_dataloader(samples=self.train_samples, shuffle=True, data_type='train')
 
     def val_dataloader(self):
-        return self._get_dataloader(samples=self.val_samples, shuffle=False, data_type='val')
+        return self._get_dataloader(samples=self.val_samples, shuffle=True, data_type='val')
 
     def test_dataloader(self):
         return self._get_dataloader(samples=self.test_samples, shuffle=False, data_type='test')
