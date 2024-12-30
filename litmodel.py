@@ -65,7 +65,24 @@ class LightningModule(LightningModule):
         self.train_cfg = train_cfg
         
 
-        self.unet2d_model = DiffusionModelUNet(
+        # self.unet2d_model = DiffusionModelUNet(
+        #     spatial_dims=2,
+        #     in_channels=3,
+        #     out_channels=3,
+        #     channels=[256, 256, 512],
+        #     attention_levels=[False, False, True],
+        #     num_head_channels=[0, 0, 512],
+        #     num_res_blocks=2,
+        #     with_conditioning=True, 
+        #     cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
+        #     upcast_attention=True,
+        #     use_flash_attention=True,
+        #     use_combined_linear=True,
+        #     dropout_cattn=0.5
+        # )
+        # init_weights(self.unet2d_model, init_type="normal", init_gain=0.01)
+
+        self.unetAB_model = DiffusionModelUNet(
             spatial_dims=2,
             in_channels=3,
             out_channels=3,
@@ -80,12 +97,26 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
-        init_weights(self.unet2d_model, init_type="normal", init_gain=0.01)
 
+        self.unetBA_model = DiffusionModelUNet(
+            spatial_dims=2,
+            in_channels=3,
+            out_channels=3,
+            channels=[256, 256, 512],
+            attention_levels=[False, False, True],
+            num_head_channels=[0, 0, 512],
+            num_res_blocks=2,
+            with_conditioning=True, 
+            cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
+            upcast_attention=True,
+            use_flash_attention=True,
+            use_combined_linear=True,
+            dropout_cattn=0.5
+        )
         # self.p20loss = None
         self.p20loss = PerceptualLoss(
             spatial_dims=2, 
-            network_type="vgg", 
+            network_type="resnet50", 
             is_fake_3d=False, 
             pretrained=True,
         ).eval() 
@@ -110,11 +141,15 @@ class LightningModule(LightningModule):
         self.ssim_outputs = []
     
 
-    def forward_pix2pix_condition(self, image2d, context):
+    def forward_pix2pix_condition(self, image2d, context, AB=True):
         _device = image2d.device
         B = image2d.shape[0]
         timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long()  
-        output = self.unet2d_model.forward(image2d, timesteps=timesteps, context=context)
+        # output = self.unet2d_model.forward(image2d, timesteps=timesteps, context=context)
+        if AB:
+            output = self.unetAB_model.forward(image2d, timesteps=timesteps, context=context)
+        else:
+            output = self.unetBA_model.forward(image2d, timesteps=timesteps, context=context)
         return output
     
     def _common_step(self, batch, batch_idx, stage: Optional[str] = "evaluation"):
@@ -124,14 +159,16 @@ class LightningModule(LightningModule):
         _device = batch["imageA"].device
         B = imageA.shape[0]
         
-        A_to_B = torch.cat([torch.zeros_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
-        B_to_A = torch.cat([torch.ones_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
+        # A_to_B = torch.cat([torch.zeros_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
+        # B_to_A = torch.cat([torch.ones_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
+        A_to_B = labelB
+        B_to_A = labelB
 
-        estimAB = self.forward_pix2pix_condition(imageA, A_to_B)
-        estimBA = self.forward_pix2pix_condition(imageB, B_to_A)
+        estimAB = self.forward_pix2pix_condition(imageA, A_to_B, AB=True)
+        estimBA = self.forward_pix2pix_condition(imageB, B_to_A, AB=False)
         
-        estimABA = self.forward_pix2pix_condition(estimAB, B_to_A)
-        estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B)
+        estimABA = self.forward_pix2pix_condition(estimAB, B_to_A, AB=False)
+        estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B, AB=True)
 
         loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
              + self.train_cfg.alpha * F.l1_loss(estimBA, imageA) \
@@ -143,7 +180,8 @@ class LightningModule(LightningModule):
                   + self.train_cfg.lamda * self.p20loss(estimBA, imageA) \
             
         self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
-        
+        loss = torch.nan_to_num(loss, nan=1.0) 
+
         # Visualization step
         if batch_idx == 0:
             # Sampling step for X-ray
@@ -171,13 +209,21 @@ class LightningModule(LightningModule):
         _device = batch["imageA"].device
         B = imageA.shape[0]
 
-        A_to_B = torch.cat([torch.zeros_like(labelB), labelB[...,1:]], dim=-1)
-        B_to_A = torch.cat([torch.ones_like(labelB), labelB[...,1:]], dim=-1)
-        estimAB = self.forward_pix2pix_condition(imageA, A_to_B)
-        estimABA = self.forward_pix2pix_condition(estimAB, B_to_A)
+        # A_to_B = torch.cat([torch.zeros_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
+        # B_to_A = torch.cat([torch.ones_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
 
-        estimBA = self.forward_pix2pix_condition(imageB, B_to_A)
-        estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B)
+        # estimAB = self.forward_pix2pix_condition(imageA, A_to_B)
+        # estimBA = self.forward_pix2pix_condition(imageB, B_to_A)
+
+        A_to_B = labelB
+        # B_to_A = labelB
+        
+        estimAB = self.forward_pix2pix_condition(imageA, A_to_B, AB=True)
+        # estimBA = self.forward_pix2pix_condition(imageB, B_to_A, AB=False)
+        
+        # estimABA = self.forward_pix2pix_condition(estimAB, B_to_A, AB=False)
+        # estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B, AB=True)
+
         # print(imageA.shape, imageB.shape, labelB.shape)
         psnr = self.psnr(estimAB, imageB)
         ssim = self.ssim(estimAB, imageB)
@@ -216,7 +262,7 @@ class LightningModule(LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
-            self.unet2d_model.parameters(), lr=self.train_cfg.lr, betas=(0.5, 0.999)
+            self.parameters(), lr=self.train_cfg.lr, betas=(0.5, 0.999)
         )
         scheduler = torch.optim.lr_scheduler.MultiStepLR(
             optimizer, #

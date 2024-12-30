@@ -441,7 +441,7 @@ class PairedDataModule(LightningDataModule):
                 length=samples,
             ),
             batch_size=self.batch_size,
-            num_workers=16 if shuffle else 4,
+            num_workers=8 if shuffle else 4,
             collate_fn=pad_list_data_collate,
             shuffle=shuffle,
         )
