@@ -176,9 +176,10 @@ class LightningModule(LightningModule):
              + self.train_cfg.alpha * F.l1_loss(estimABA, imageA) \
              
         if self.p20loss is not None:
-            loss += self.train_cfg.lamda * self.p20loss(estimAB, imageB) \
-                  + self.train_cfg.lamda * self.p20loss(estimBA, imageA) \
-            
+            ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) \
+                  + self.train_cfg.lamda * self.p20loss(estimBA.float(), imageA.float()) \
+
+            loss = loss + ploss
         self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
         loss = torch.nan_to_num(loss, nan=1.0) 
 
