@@ -116,7 +116,7 @@ class LightningModule(LightningModule):
         # self.p20loss = None
         self.p20loss = PerceptualLoss(
             spatial_dims=2, 
-            network_type="resnet50", 
+            network_type="vgg", 
             is_fake_3d=False, 
             pretrained=True,
         ).eval() 
