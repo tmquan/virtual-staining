@@ -51,7 +51,7 @@ test: null
 trainer:
   accelerator: auto
   devices: -1
-  precision: '16-mixed'
+  precision: 32
   strategy: auto
   max_epochs: ${train.epochs}
   enable_model_summary: true
@@ -64,7 +64,7 @@ callbacks:
     auto_insert_metric_name: true
     save_top_k: 2
     save_last: true
-    every_n_epochs: 20
+    # every_n_epochs: 20
   - _target_: lightning.pytorch.callbacks.LearningRateMonitor
     logging_interval: 'epoch'
     log_momentum: true
