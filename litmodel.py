@@ -84,7 +84,7 @@ class LightningModule(LightningModule):
 
         self.unetAB_model = DiffusionModelUNet(
             spatial_dims=2,
-            in_channels=3,
+            in_channels=1,
             out_channels=3,
             channels=[256, 256, 512],
             attention_levels=[False, False, True],
@@ -98,21 +98,22 @@ class LightningModule(LightningModule):
             dropout_cattn=0.5
         )
 
-        # self.unetBA_model = DiffusionModelUNet(
-        #     spatial_dims=2,
-        #     in_channels=3,
-        #     out_channels=3,
-        #     channels=[256, 256, 512],
-        #     attention_levels=[False, False, True],
-        #     num_head_channels=[0, 0, 512],
-        #     num_res_blocks=2,
-        #     with_conditioning=True, 
-        #     cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
-        #     upcast_attention=True,
-        #     use_flash_attention=True,
-        #     use_combined_linear=True,
-        #     dropout_cattn=0.5
-        # )
+        self.unetBA_model = DiffusionModelUNet(
+            spatial_dims=2,
+            in_channels=3,
+            out_channels=1,
+            channels=[256, 256, 512],
+            attention_levels=[False, False, True],
+            num_head_channels=[0, 0, 512],
+            num_res_blocks=2,
+            with_conditioning=True, 
+            cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
+            upcast_attention=True,
+            use_flash_attention=True,
+            use_combined_linear=True,
+            dropout_cattn=0.5
+        )
+
         # self.p20loss = None
         self.p20loss = PerceptualLoss(
             spatial_dims=2, 
@@ -146,11 +147,11 @@ class LightningModule(LightningModule):
         B = image2d.shape[0]
         timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long()  
         # output = self.unet2d_model.forward(image2d, timesteps=timesteps, context=context)
-        output = self.unetAB_model.forward(image2d, timesteps=timesteps, context=context)
-        # if AB:
-        #     output = self.unetAB_model.forward(image2d, timesteps=timesteps, context=context)
-        # else:
-        #     output = self.unetBA_model.forward(image2d, timesteps=timesteps, context=context)
+        # output = self.unetAB_model.forward(image2d, timesteps=timesteps, context=context)
+        if AB:
+            output = self.unetAB_model.forward(image2d.mean(dim=1, keepdim=True), timesteps=timesteps, context=context)
+        else:
+            output = self.unetBA_model.forward(image2d, timesteps=timesteps, context=context).repeat(1,3,1,1)
         return output
     
     def _common_step(self, batch, batch_idx, stage: Optional[str] = "evaluation"):
@@ -166,11 +167,19 @@ class LightningModule(LightningModule):
         
 
         estimAB = self.forward_pix2pix_condition(imageA, A_to_B, AB=True)
+        estimBA = self.forward_pix2pix_condition(imageB, A_to_B, AB=False)
 
-        loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) 
+        estimABA = self.forward_pix2pix_condition(estimAB, A_to_B, AB=False)
+        estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B, AB=True)
+
+        loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+             + self.train_cfg.alpha * F.l1_loss(estimBA, imageA) \
+             + self.train_cfg.gamma * F.l1_loss(estimABA, imageA) \
+             + self.train_cfg.gamma * F.l1_loss(estimBAB, imageB) 
              
         if self.p20loss is not None:
-            ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) 
+            ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) \
+                  + self.train_cfg.lamda * self.p20loss(estimBA.float(), imageA.float()) 
             loss = loss + ploss
         self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
         loss = torch.nan_to_num(loss, nan=1.0) 
@@ -180,7 +189,7 @@ class LightningModule(LightningModule):
             # Sampling step for X-ray
             zeros = torch.zeros_like(imageA)
             with torch.no_grad():
-                viz2d = torch.cat([imageA, imageB, estimAB], dim=-1)
+                viz2d = torch.cat([imageA, imageB, estimAB, estimBA, estimABA, estimBAB], dim=-1)
                 tensorboard = self.logger.experiment
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)    

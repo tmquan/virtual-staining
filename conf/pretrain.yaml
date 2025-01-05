@@ -16,12 +16,12 @@ data:
   - Subject1_Slide1
   test_folders:
   - Subject1_Slide1
-  train_samples: 16000
-  val_samples: 1600
+  train_samples: 8000
+  val_samples: 800
   test_samples: null
   img_shape: 256
   vol_shape: 256
-  batch_size: 8
+  batch_size: 4
 
 model:
   phase: "unet"
@@ -35,7 +35,7 @@ train:
   ckpt: ${resume_from_checkpoint}
   strict: 1 if ${resume_from_checkpoint} is not None else 0
   lr: 5e-5
-  alpha: 1
+  alpha: 10
   gamma: 1
   perceptual: false
   lamda: 2e-3
@@ -51,7 +51,7 @@ test: null
 trainer:
   accelerator: auto
   devices: -1
-  precision: 32
+  precision: '16-mixed'
   strategy: auto
   max_epochs: ${train.epochs}
   enable_model_summary: true
@@ -64,6 +64,7 @@ callbacks:
     auto_insert_metric_name: true
     save_top_k: 2
     save_last: true
+    filename: "{epoch}-{validation_loss_epoch:.2f}"
     # every_n_epochs: 20
   - _target_: lightning.pytorch.callbacks.LearningRateMonitor
     logging_interval: 'epoch'
