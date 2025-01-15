@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-
+from kornia.color import rgb_to_hsv
 from monai.losses import PerceptualLoss
 from monai.utils import optional_import
 from monai.metrics import PSNRMetric, SSIMMetric
@@ -97,7 +97,7 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
-
+        init_weights(self.unetAB_model, init_type="kaiming", init_gain=0.01)
         self.unetBA_model = DiffusionModelUNet(
             spatial_dims=2,
             in_channels=3,
@@ -113,11 +113,11 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
-
+        init_weights(self.unetBA_model, init_type="kaiming", init_gain=0.01)
         # self.p20loss = None
         self.p20loss = PerceptualLoss(
             spatial_dims=2, 
-            network_type="vgg", 
+            network_type="resnet50", 
             is_fake_3d=False, 
             pretrained=True,
         ).eval() 
@@ -172,18 +172,6 @@ class LightningModule(LightningModule):
         estimABA = self.forward_pix2pix_condition(estimAB, A_to_B, AB=False)
         estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B, AB=True)
 
-        loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
-             + self.train_cfg.alpha * F.l1_loss(estimBA, imageA) \
-             + self.train_cfg.gamma * F.l1_loss(estimABA, imageA) \
-             + self.train_cfg.gamma * F.l1_loss(estimBAB, imageB) 
-             
-        if self.p20loss is not None:
-            ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) \
-                  + self.train_cfg.lamda * self.p20loss(estimBA.float(), imageA.float()) 
-            loss = loss + ploss
-        self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
-        loss = torch.nan_to_num(loss, nan=1.0) 
-
         # Visualization step
         if batch_idx == 0:
             # Sampling step for X-ray
@@ -192,7 +180,27 @@ class LightningModule(LightningModule):
                 viz2d = torch.cat([imageA, imageB, estimAB, estimBA, estimABA, estimBAB], dim=-1)
                 tensorboard = self.logger.experiment
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
-                tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)    
+                tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
+        use_hsv = True
+        if not use_hsv:
+            loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+                 + self.train_cfg.alpha * F.l1_loss(estimBA, imageA) \
+                 + self.train_cfg.gamma * F.l1_loss(estimABA, imageA) \
+                 + self.train_cfg.gamma * F.l1_loss(estimBAB, imageB) 
+        else:
+            loss = self.train_cfg.alpha * F.l1_loss(rgb_to_hsv(estimAB), rgb_to_hsv(imageB)) \
+                 + self.train_cfg.alpha * F.l1_loss((estimBA), (imageA)) \
+                 + self.train_cfg.gamma * F.l1_loss((estimABA), (imageA)) \
+                 + self.train_cfg.gamma * F.l1_loss(rgb_to_hsv(estimBAB), rgb_to_hsv(imageB)) 
+            
+        if self.p20loss is not None:
+            ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) \
+                  + self.train_cfg.lamda * self.p20loss(estimBA.float(), imageA.float()) 
+            loss = loss + ploss
+        self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
+        # loss = torch.nan_to_num(loss, nan=1.0) 
+
+          
         return loss
                         
     def training_step(self, batch, batch_idx):

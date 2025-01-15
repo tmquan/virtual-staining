@@ -44,7 +44,7 @@ train:
   ema_decay: 0.9999 # `-1` disables it
 
 
-resume_from_checkpoint: null #TODO
+resume_from_checkpoint: logs/unet/version_2/checkpoints/epoch=322-validation_loss_epoch=1.00.ckpt
 test: null
 
 
@@ -62,7 +62,7 @@ callbacks:
     monitor: "validation_loss_epoch"
     mode: "min"
     auto_insert_metric_name: true
-    save_top_k: 4
+    save_top_k: 2
     save_last: true
     filename: "{epoch}-{validation_loss_epoch:.2f}"
     # every_n_epochs: 20

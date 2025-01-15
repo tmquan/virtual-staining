@@ -195,7 +195,7 @@ class LongestAxisCropDict(CropDict):
 class RandCropByColorDict(RandCropByPosNegLabelDict):
     """
     Custom transform to randomly crop image areas based on RGB values in the label image,
-    focusing on areas that are likely to be pink or purple.
+    focusing on areas that contain a significant amount of any distinct color.
     """
 
     def __init__(
@@ -204,8 +204,8 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         label_key: str,
         spatial_size: Sequence[int] | int,
         num_samples: int = 1,
-        pink_threshold: float = 0.5,
-        purple_threshold: float = 0.5,
+        color_area_threshold: float = 0.1,  # Threshold for distinct color area
+        color_diff_threshold: float = 0.2,  # Allowable difference between RGB channels
         allow_smaller: bool = False,
         lazy: bool = False,
     ) -> None:
@@ -219,8 +219,8 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
             allow_smaller=allow_smaller,
             lazy=lazy
         )
-        self.pink_threshold = pink_threshold
-        self.purple_threshold = purple_threshold
+        self.color_area_threshold = color_area_threshold
+        self.color_diff_threshold = color_diff_threshold
 
     def randomize(
         self,
@@ -238,19 +238,29 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
 
     def check_color(self, label: torch.Tensor) -> bool:
         """
-        Check if the labeled regions contain more pink or purple pixels than defined thresholds.
+        Check if the labeled regions contain a significant area of distinct colors
+        exceeding the specified percentage of the total area.
         """
-        # Define masks for pink and purple colors based on RGB values
-        pink_mask = (label[0] > 150) & (label[1] < 100) & (label[2] > 150)
-        purple_mask = (label[0] < 100) & (label[1] < 100) & (label[2] > 150)
+        # Calculate differences between each channel
+        r_diff = label[0] - label[1]  # Difference between Red and Green
+        g_diff = label[1] - label[2]  # Difference between Green and Blue
+        b_diff = label[2] - label[0]  # Difference between Blue and Red
 
-        # Calculate proportions of pink and purple pixels
+        # Create a mask for pixels that have sufficient differences in any channel
+        distinct_color_mask = (
+            (r_diff.abs() > self.color_diff_threshold) |
+            (g_diff.abs() > self.color_diff_threshold) |
+            (b_diff.abs() > self.color_diff_threshold)
+        )
+
+        # Calculate total pixels in the patch
         total_pixels = label.numel() // label.shape[-1]
         
-        pink_ratio = pink_mask.sum().item() / total_pixels
-        purple_ratio = purple_mask.sum().item() / total_pixels
+        # Calculate area of distinct colored pixels
+        colored_area = distinct_color_mask.sum().item()
 
-        return pink_ratio > self.pink_threshold or purple_ratio > self.purple_threshold
+        # Check if the area of distinct colored pixels exceeds the specified threshold
+        return (colored_area / total_pixels) > self.color_area_threshold
 
     def __call__(self, data: Mapping[Hashable, torch.Tensor], lazy: bool | None = None) -> List[dict[Hashable, torch.Tensor]]:
         d = dict(data)
@@ -417,7 +427,11 @@ class PairedDataModule(LightningDataModule):
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
             # OneOf([
-            #     RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", spatial_size=self.img_shape),
+            #     RandCropByColorDict(keys=["imageA", "imageB"], 
+            #                         label_key="imageB", 
+            #                         color_area_threshold=0.1,
+            #                         color_diff_threshold=0.2,
+            #                         spatial_size=self.img_shape),
             #     RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             # ]),
             RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
