@@ -34,9 +34,10 @@ model:
 train:
   ckpt: ${resume_from_checkpoint}
   strict: 1 if ${resume_from_checkpoint} is not None else 0
-  lr: 5e-5
+  lr: 1e-4
   alpha: 10
   gamma: 1
+  delta: 0.01
   perceptual: false
   lamda: 2e-3
   batch_size: ${data.batch_size}
