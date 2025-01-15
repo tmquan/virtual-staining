@@ -97,7 +97,7 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
-        init_weights(self.unetAB_model, init_type="kaiming", init_gain=0.01)
+        init_weights(self.unetAB_model, init_type="xavier", init_gain=0.01)
         self.unetBA_model = DiffusionModelUNet(
             spatial_dims=2,
             in_channels=3,
@@ -113,7 +113,7 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
-        init_weights(self.unetBA_model, init_type="kaiming", init_gain=0.01)
+        init_weights(self.unetBA_model, init_type="xavier", init_gain=0.01)
         # self.p20loss = None
         self.p20loss = PerceptualLoss(
             spatial_dims=2, 
@@ -188,10 +188,10 @@ class LightningModule(LightningModule):
                  + self.train_cfg.gamma * F.l1_loss(estimABA, imageA) \
                  + self.train_cfg.gamma * F.l1_loss(estimBAB, imageB) 
         else:
-            loss = self.train_cfg.alpha * F.l1_loss(rgb_to_hsv(estimAB), rgb_to_hsv(imageB)) \
+            loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) \
                  + self.train_cfg.alpha * F.l1_loss((estimBA), (imageA)) \
                  + self.train_cfg.gamma * F.l1_loss((estimABA), (imageA)) \
-                 + self.train_cfg.gamma * F.l1_loss(rgb_to_hsv(estimBAB), rgb_to_hsv(imageB)) 
+                 + self.train_cfg.gamma * F.l1_loss((estimBAB), (imageB)) 
             
         if self.p20loss is not None:
             ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) \

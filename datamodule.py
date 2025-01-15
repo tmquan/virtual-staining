@@ -205,7 +205,7 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         spatial_size: Sequence[int] | int,
         num_samples: int = 1,
         color_area_threshold: float = 0.1,  # Threshold for distinct color area
-        color_diff_threshold: float = 0.2,  # Allowable difference between RGB channels
+        color_diff_threshold: float = 0.1,  # Allowable difference between RGB channels
         allow_smaller: bool = False,
         lazy: bool = False,
     ) -> None:
@@ -242,9 +242,9 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         exceeding the specified percentage of the total area.
         """
         # Calculate differences between each channel
-        r_diff = label[0] - label[1]  # Difference between Red and Green
-        g_diff = label[1] - label[2]  # Difference between Green and Blue
-        b_diff = label[2] - label[0]  # Difference between Blue and Red
+        r_diff = label[[0]] - label[[1]]  # Difference between Red and Green
+        g_diff = label[[1]] - label[[2]]  # Difference between Green and Blue
+        b_diff = label[[2]] - label[[0]]  # Difference between Blue and Red
 
         # Create a mask for pixels that have sufficient differences in any channel
         distinct_color_mask = (
@@ -254,7 +254,7 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         )
 
         # Calculate total pixels in the patch
-        total_pixels = label.numel() // label.shape[-1]
+        total_pixels = label.shape[-1] * label.shape[-2]
         
         # Calculate area of distinct colored pixels
         colored_area = distinct_color_mask.sum().item()
@@ -269,16 +269,25 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         ret: List[dict] = [dict(d) for _ in range(self.cropper.num_samples)]
 
         for i in range(self.cropper.num_samples):
-            while True:
-                # Randomly select a crop center based on color criteria
+            max_attempts = 10  # Prevent infinite loop
+            attempts = 0
+            
+            while attempts < max_attempts:
                 sampled_data = super().__call__(data, lazy=lazy)[i]
                 label_patch = sampled_data[self.label_key]  # Get corresponding label patch
 
                 if self.check_color(label_patch):
                     ret[i].update(sampled_data)
                     break
+                
+                attempts += 1
+            
+            if attempts == max_attempts:
+                print(f"Warning: Maximum attempts reached for sample {i}. Returning default data.")
+                ret[i].update(sampled_data)  # Fallback to last sampled data
 
         return ret
+
     
 class PairedDataset(CacheDataset, Randomizable):
     def __init__(
@@ -313,11 +322,11 @@ class PairedDataset(CacheDataset, Randomizable):
             data["labelA"] = self.data[rand_idx]["labelA"]
             data["labelB"] = self.data[rand_idx]["labelB"]
         else:
-            fixed = self.R.randint(0, len(self.data))
-            data["imageA"] = self.data[fixed]["imageA"]
-            data["imageB"] = self.data[fixed]["imageB"]
-            data["labelA"] = self.data[fixed]["labelA"]
-            data["labelB"] = self.data[fixed]["labelB"]
+            detr_idx = self.R.randint(0, len(self.data))
+            data["imageA"] = self.data[detr_idx]["imageA"]
+            data["imageB"] = self.data[detr_idx]["imageB"]
+            data["labelA"] = self.data[detr_idx]["labelA"]
+            data["labelB"] = self.data[detr_idx]["labelB"]
             
         if self.transform is not None:
             data = apply_transform(self.transform, data)
@@ -430,7 +439,7 @@ class PairedDataModule(LightningDataModule):
             #     RandCropByColorDict(keys=["imageA", "imageB"], 
             #                         label_key="imageB", 
             #                         color_area_threshold=0.1,
-            #                         color_diff_threshold=0.2,
+            #                         color_diff_threshold=100,
             #                         spatial_size=self.img_shape),
             #     RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             # ]),
