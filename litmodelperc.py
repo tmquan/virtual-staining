@@ -17,7 +17,7 @@ from monai.metrics import PSNRMetric, SSIMMetric
 tqdm, has_tqdm = optional_import("tqdm", name="tqdm")
 
 from monai.utils import optional_import
-from monai.networks.nets import UNet, VNet, UNETR, SwinUNETR, BasicUNet, ViTAutoEnc, DenseNet121
+from monai.networks.nets import UNet, VNet, UNETR, SwinUNETR, BasicUNet, ViTAutoEnc, AttentionUnet
 from monai.inferers import DiffusionInferer
 from monai.networks.nets import DiffusionModelUNet
 from monai.networks.schedulers import DDPMScheduler
@@ -104,20 +104,6 @@ class LightningModule(LightningModule):
         #     pretrained=True,
         # ).eval() 
         
-        self.dnetAA_model = DenseNet121(
-            spatial_dims=2,
-            in_channels=3,
-            out_channels=1, 
-            pretrained=True
-        )
-
-        self.dnetBB_model = DenseNet121(
-            spatial_dims=2,
-            in_channels=3,
-            out_channels=1, 
-            pretrained=True
-        )
-
         if model_cfg.phase=="finetune":
             pass
         
@@ -136,8 +122,7 @@ class LightningModule(LightningModule):
         self.ssim = SSIMMetric(spatial_dims=2, data_range=1.0)
         self.psnr_outputs = []
         self.ssim_outputs = []
-        # Important: This property activates manual optimization.
-        self.automatic_optimization = False
+    
 
     def forward_pix2pix_condition(self, image2d, context, AB=True):
         _device = image2d.device
@@ -151,34 +136,7 @@ class LightningModule(LightningModule):
             output = self.unetBA_model.forward(image2d, timesteps=timesteps, context=context).repeat(1,3,1,1)
         return output
     
-    # def _gen_step(self, real_images, conditioned_images):
-    #     # Pix2Pix has adversarial and a reconstruction loss
-    #     # adversarial loss
-    #     fake_images = self.gen(conditioned_images)
-    #     disc_logits = self.disc(fake_images, conditioned_images)
-    #     adversarial_loss = self.adversarial_criterion(disc_logits, torch.ones_like(disc_logits))
-
-    #     # reconstruction loss
-    #     recon_loss = self.recon_criterion(fake_images, real_images)
-    #     lambda_recon = self.hparams.lambda_recon
-
-    #     return adversarial_loss + lambda_recon * recon_loss
-
-    # def _disc_step(self, real_images, conditioned_images):
-    #     fake_images = self.gen(conditioned_images).detach()
-    #     fake_logits = self.disc(fake_images, conditioned_images)
-
-    #     real_logits = self.disc(real_images, conditioned_images)
-
-    #     fake_loss = self.adversarial_criterion(fake_logits, torch.zeros_like(fake_logits))
-    #     real_loss = self.adversarial_criterion(real_logits, torch.ones_like(real_logits))
-    #     return (real_loss + fake_loss) / 2
-    
     def _common_step(self, batch, batch_idx, stage: Optional[str] = "evaluation"):
-        # Implementation follows the PyTorch tutorial:
-        # https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
-        g_optim, d_optim = self.optimizers()
-
         imageA = batch["imageA"]
         imageB = batch["imageB"]
         labelB = batch["labelB"].unsqueeze(-2) * 1.0
@@ -189,6 +147,7 @@ class LightningModule(LightningModule):
         # B_to_A = torch.cat([torch.ones_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
         A_to_B = labelB
         
+
         estimAB = self.forward_pix2pix_condition(imageA, A_to_B, AB=True)
         estimBA = self.forward_pix2pix_condition(imageB, A_to_B, AB=False)
 
@@ -204,54 +163,26 @@ class LightningModule(LightningModule):
                 tensorboard = self.logger.experiment
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
-        
-        # loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) \
-        #          + self.train_cfg.alpha * F.l1_loss((estimBA), (imageA)) \
-        #          + self.train_cfg.gamma * F.l1_loss((estimABA), (imageA)) \
-        #          + self.train_cfg.gamma * F.l1_loss((estimBAB), (imageB)) 
-        # if self.p20loss is not None:
-        #     ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) \
-        #           + self.train_cfg.lamda * self.p20loss(estimBA.float(), imageA.float()) 
-        #     loss = loss + ploss
-        # self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
-        # loss = torch.nan_to_num(loss, nan=1.0) 
-
-        if stage=="train":
-            fake_logits = self.dnetAA_model.forward(torch.cat([estimBA, estimABA])) \
-                        + self.dnetBB_model.forward(torch.cat([estimAB, estimBAB]))
-            g_fake_loss = F.binary_cross_entropy_with_logits(fake_logits, torch.ones_like(fake_logits))
-            loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) \
-                 + self.train_cfg.alpha * F.l1_loss((estimBA), (imageA)) \
-                 + self.train_cfg.gamma * F.l1_loss((estimABA), (imageA)) \
-                 + self.train_cfg.gamma * F.l1_loss((estimBAB), (imageB)) 
-            g_loss = loss+g_fake_loss
-            self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
-            self.log(f"{stage}_g_fake_loss", g_fake_loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
-            g_optim.zero_grad()
-            self.manual_backward(g_loss)
-            g_optim.step()
-
-            fake_logits = self.dnetAA_model.forward(torch.cat([estimBA, estimABA]).detach()) \
-                        + self.dnetBB_model.forward(torch.cat([estimAB, estimBAB]).detach())
-            real_logits = self.dnetAA_model.forward(torch.cat([imageA, imageA])) \
-                        + self.dnetBB_model.forward(torch.cat([imageB, imageB]))
-            d_fake_loss = F.binary_cross_entropy_with_logits(fake_logits, torch.zeros_like(fake_logits))
-            d_real_loss = F.binary_cross_entropy_with_logits(real_logits, torch.ones_like(real_logits))
-            d_loss = (d_real_loss + d_fake_loss) / 2
-            self.log(f"{stage}_d_fake_loss", d_fake_loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
-            self.log(f"{stage}_d_real_loss", d_real_loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
-            
-            d_optim.zero_grad()
-            self.manual_backward(d_loss)
-            d_optim.step()
-
+        use_hsv = True
+        if not use_hsv:
+            loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+                 + self.train_cfg.alpha * F.l1_loss(estimBA, imageA) \
+                 + self.train_cfg.gamma * F.l1_loss(estimABA, imageA) \
+                 + self.train_cfg.gamma * F.l1_loss(estimBAB, imageB) 
         else:
             loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) \
                  + self.train_cfg.alpha * F.l1_loss((estimBA), (imageA)) \
                  + self.train_cfg.gamma * F.l1_loss((estimABA), (imageA)) \
                  + self.train_cfg.gamma * F.l1_loss((estimBAB), (imageB)) 
-            return loss
-         
+            
+        if self.p20loss is not None:
+            ploss = self.train_cfg.lamda * self.p20loss(estimAB.float(), imageB.float()) \
+                  + self.train_cfg.lamda * self.p20loss(estimBA.float(), imageA.float()) 
+            loss = loss + ploss
+        self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
+        # loss = torch.nan_to_num(loss, nan=1.0) 
+
+          
         return loss
                         
     def training_step(self, batch, batch_idx):
@@ -323,27 +254,12 @@ class LightningModule(LightningModule):
         self.ssim_outputs.clear()
 
     def configure_optimizers(self):
-        optimizer_g = torch.optim.AdamW(
-            [
-                {'params': self.unetAB_model.parameters()},
-                {'params': self.unetBA_model.parameters()}
-            ], lr=self.train_cfg.lr, betas=(0.5, 0.999)
+        optimizer = torch.optim.AdamW(
+            self.parameters(), lr=self.train_cfg.lr, betas=(0.5, 0.999)
         )
-
-        optimizer_d = torch.optim.AdamW(
-            [
-                {'params': self.dnetAA_model.parameters()},
-                {'params': self.dnetBB_model.parameters()}
-            ], lr=self.train_cfg.lr, betas=(0.5, 0.999)
-        )
-        scheduler_g = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer_g, #
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer, #
             milestones=[100, 200, 300, 400], 
             gamma=0.5
         )
-        scheduler_d = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer_d, #
-            milestones=[100, 200, 300, 400], 
-            gamma=0.5
-        )
-        return [optimizer_g, optimizer_d], [scheduler_g, scheduler_d]
+        return [optimizer], [scheduler]

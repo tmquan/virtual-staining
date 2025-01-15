@@ -52,7 +52,7 @@ trainer:
   accelerator: auto
   devices: -1
   precision: '16-mixed'
-  strategy: auto
+  strategy: 'ddp_find_unused_parameters_true'
   max_epochs: ${train.epochs}
   enable_model_summary: true
   # amp_backend: apex
@@ -72,8 +72,8 @@ callbacks:
     log_weight_decay: true
   - _target_: lightning.pytorch.callbacks.RichProgressBar
     refresh_rate: 1
-  - _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
-    swa_lrs: 1e-3  
+  # - _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+  #   swa_lrs: 1e-3  
 
 logger:
   - _target_: lightning.pytorch.loggers.TensorBoardLogger
