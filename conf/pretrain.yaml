@@ -52,7 +52,7 @@ test: null
 trainer:
   accelerator: auto
   devices: -1
-  precision: '16-mixed'
+  precision: 32
   strategy: 'ddp_find_unused_parameters_true'
   max_epochs: ${train.epochs}
   enable_model_summary: true

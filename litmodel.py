@@ -67,27 +67,11 @@ class LightningModule(LightningModule):
 
         self.unetAB_model = DiffusionModelUNet(
             spatial_dims=2,
-            in_channels=1,
-            out_channels=3,
-            channels=[256, 256, 512],
-            attention_levels=[False, False, True],
-            num_head_channels=[0, 0, 512],
-            num_res_blocks=2,
-            with_conditioning=True, 
-            cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
-            upcast_attention=True,
-            use_flash_attention=True,
-            use_combined_linear=True,
-            dropout_cattn=0.5
-        )
-        # init_weights(self.unetAB_model, init_type="xavier", init_gain=0.01)
-        self.unetBA_model = DiffusionModelUNet(
-            spatial_dims=2,
             in_channels=3,
-            out_channels=1,
-            channels=[256, 256, 512],
-            attention_levels=[False, False, True],
-            num_head_channels=[0, 0, 512],
+            out_channels=3,
+            channels=[128, 128, 256],
+            attention_levels=[True, True, True],
+            num_head_channels=[128, 128, 256],
             num_res_blocks=2,
             with_conditioning=True, 
             cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
@@ -96,31 +80,69 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
+        init_weights(self.unetAB_model, init_type="normal", init_gain=0.01)
+        self.swinAB_model = None
+        # self.swinAB_model = SwinUNETR(
+        #     spatial_dims=2,
+        #     in_channels=3,
+        #     out_channels=3,
+        #     img_size=self.model_cfg.img_shape, 
+        #     feature_size=72,
+        #     depths=(2, 2, 2, 2),
+        #     num_heads=(3, 6, 12, 24),
+        #     norm_name="instance",
+        #     drop_rate=0.5,
+        #     attn_drop_rate=0.5,
+        #     dropout_path_rate=0.5,
+        #     normalize=True,
+        #     use_checkpoint=False,
+        #     downsample="mergingv2",
+        #     use_v2=True,
+        # )
+        # init_weights(self.unetAB_model, init_type="xavier", init_gain=0.01)
+        # self.unetBA_model = DiffusionModelUNet(
+        #     spatial_dims=2,
+        #     in_channels=3,
+        #     out_channels=1,
+        #     channels=[256, 256, 512],
+        #     attention_levels=[False, False, True],
+        #     num_head_channels=[0, 0, 512],
+        #     num_res_blocks=2,
+        #     with_conditioning=True, 
+        #     cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
+        #     upcast_attention=True,
+        #     use_flash_attention=True,
+        #     use_combined_linear=True,
+        #     dropout_cattn=0.5
+        # )
+
         # init_weights(self.unetBA_model, init_type="xavier", init_gain=0.01)
-        self.p20loss = None
-        # self.p20loss = PerceptualLoss(
-        #     spatial_dims=2, 
-        #     network_type="resnet50", 
-        #     is_fake_3d=False, 
-        #     pretrained=True,
-        # ).eval() 
-        
-        self.dnetAA_model = PatchDiscriminator(
+        # self.p20loss = None
+        self.p20loss = PerceptualLoss(
             spatial_dims=2, 
-            num_layers_d=4, 
-            channels=64, 
-            in_channels=3, 
-            out_channels=1
-        )
+            network_type="resnet50", 
+            is_fake_3d=False, 
+            pretrained=True,
+        ).eval() 
+        
+        # self.dnetAA_model = PatchDiscriminator(
+        #     spatial_dims=2, 
+        #     num_layers_d=4, 
+        #     channels=64, 
+        #     in_channels=3, 
+        #     out_channels=1
+        # )
 
         self.dnetBB_model = PatchDiscriminator(
             spatial_dims=2, 
-            num_layers_d=4, 
+            num_layers_d=5, 
             channels=64, 
             in_channels=3, 
             out_channels=1
         )
+        init_weights(self.dnetBB_model, init_type="normal", init_gain=0.01)
         self.adv_loss = PatchAdversarialLoss(criterion="least_squares")
+
         if model_cfg.phase=="finetune":
             pass
         
@@ -135,6 +157,8 @@ class LightningModule(LightningModule):
         self.train_step_outputs = []
         self.validation_step_outputs = []
 
+        self.scheduler = DDPMScheduler(num_train_timesteps=model_cfg.timesteps)
+        self.inferer = DiffusionInferer(self.scheduler)
         self.psnr = PSNRMetric(max_val=1.0)
         self.ssim = SSIMMetric(spatial_dims=2, data_range=1.0)
         self.psnr_outputs = []
@@ -142,14 +166,34 @@ class LightningModule(LightningModule):
         # Important: This property activates manual optimization.
         self.automatic_optimization = False
 
-    def forward_pix2pix_condition(self, image2d, context, AB=True):
+    def forward_pix2pix_condition(self, image2d, context, AB=True, is_training=False):
         _device = image2d.device
         B = image2d.shape[0]
-        timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long()  
+        # if is_training:
+        #     timesteps = 1*torch.randint(0, 1000, (B,), device=_device).long() 
+        # else:
+        #     timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
+        # noise = torch.randn_like(image2d) 
+        timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
         if AB:
-            output = self.unetAB_model.forward(image2d.mean(dim=1, keepdim=True), timesteps=timesteps, context=context)
+            middle = self.unetAB_model.forward(
+                image2d, 
+                timesteps=timesteps, 
+                context=context
+            )
+            # middle = self.inferer(
+            #     inputs=image2d, 
+            #     diffusion_model=self.unetAB_model, 
+            #     noise=noise, 
+            #     timesteps=timesteps, 
+            #     condition=context
+            # )
+            if self.swinAB_model is not None:
+                output = self.swinAB_model.forward(middle)
+            else:
+                output = middle
         else:
-            output = self.unetBA_model.forward(image2d, timesteps=timesteps, context=context).repeat(1,3,1,1)
+            pass
         return output
     
     def _common_step(self, batch, batch_idx, stage: Optional[str] = "evaluation"):
@@ -163,22 +207,14 @@ class LightningModule(LightningModule):
         _device = batch["imageA"].device
         B = imageA.shape[0]
         
-        # A_to_B = torch.cat([torch.zeros_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
-        # B_to_A = torch.cat([torch.ones_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
-        A_to_B = labelB
-        
-        estimAB = self.forward_pix2pix_condition(imageA, A_to_B, AB=True)
-        estimBA = self.forward_pix2pix_condition(imageB, A_to_B, AB=False)
-
-        estimABA = self.forward_pix2pix_condition(estimAB, A_to_B, AB=False)
-        estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B, AB=True)
+        estimAB = self.forward_pix2pix_condition(imageA, labelB, AB=True, is_training=(stage=="train"))
 
         # Visualization step
         if batch_idx == 0:
             # Sampling step for X-ray
             zeros = torch.zeros_like(imageA)
             with torch.no_grad():
-                viz2d = torch.cat([imageA, imageB, estimAB, estimBA, estimABA, estimBAB], dim=-1)
+                viz2d = torch.cat([imageA, imageB, estimAB], dim=-1)
                 tensorboard = self.logger.experiment
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
@@ -196,14 +232,9 @@ class LightningModule(LightningModule):
 
         if stage=="train":
             # Generator
-            fake_logits = self.dnetAA_model.forward(torch.cat([estimBA, estimABA]).contiguous().float())[-1] \
-                        + self.dnetBB_model.forward(torch.cat([estimAB, estimBAB]).contiguous().float())[-1]
-            
+            fake_logits = self.dnetBB_model.forward(estimAB.contiguous().float())[-1]
             g_fake_loss = self.adv_loss(fake_logits, target_is_real=True, for_discriminator=False)
-            r_loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) \
-                   + self.train_cfg.alpha * F.l1_loss((estimBA), (imageA)) \
-                   + self.train_cfg.gamma * F.l1_loss((estimABA), (imageA)) \
-                   + self.train_cfg.gamma * F.l1_loss((estimBAB), (imageB)) 
+            r_loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) 
             g_loss = self.train_cfg.delta * g_fake_loss + r_loss
             self.log(f"{stage}_g_fake_loss", g_fake_loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B)
             g_optim.zero_grad()
@@ -211,10 +242,8 @@ class LightningModule(LightningModule):
             g_optim.step()
 
             # Discriminator
-            fake_logits = self.dnetAA_model.forward(torch.cat([estimBA, estimABA]).contiguous().detach())[-1] \
-                        + self.dnetBB_model.forward(torch.cat([estimAB, estimBAB]).contiguous().detach())[-1]
-            real_logits = self.dnetAA_model.forward(torch.cat([imageA, imageA]).contiguous().detach())[-1] \
-                        + self.dnetBB_model.forward(torch.cat([imageB, imageB]).contiguous().detach())[-1]
+            fake_logits = self.dnetBB_model.forward(estimAB.contiguous().detach())[-1]
+            real_logits = self.dnetBB_model.forward(imageB.contiguous().detach())[-1]
             d_fake_loss = self.adv_loss(fake_logits, target_is_real=False, for_discriminator=True)
             d_real_loss = self.adv_loss(real_logits, target_is_real=True, for_discriminator=True)
             d_loss = self.train_cfg.delta * (d_real_loss + d_fake_loss) / 2
@@ -226,10 +255,7 @@ class LightningModule(LightningModule):
             d_optim.step()
             loss = r_loss
         else:
-            r_loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) \
-                   + self.train_cfg.alpha * F.l1_loss((estimBA), (imageA)) \
-                   + self.train_cfg.gamma * F.l1_loss((estimABA), (imageA)) \
-                   + self.train_cfg.gamma * F.l1_loss((estimBAB), (imageB))
+            r_loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) 
             loss = r_loss
         self.log(f"{stage}_loss", loss, on_step=(stage == "train"), prog_bar=True, logger=True, sync_dist=True, batch_size=B) 
         return loss
@@ -306,15 +332,15 @@ class LightningModule(LightningModule):
         optimizer_g = torch.optim.AdamW(
             [
                 {'params': self.unetAB_model.parameters()},
-                {'params': self.unetBA_model.parameters()}
+                # {'params': self.unetBA_model.parameters()}
             ], lr=1*self.train_cfg.lr, betas=(0.5, 0.999)
         )
 
         optimizer_d = torch.optim.AdamW(
             [
-                {'params': self.dnetAA_model.parameters()},
+                # {'params': self.dnetAA_model.parameters()},
                 {'params': self.dnetBB_model.parameters()}
-            ], lr=5*self.train_cfg.lr, betas=(0.5, 0.999)
+            ], lr=1*self.train_cfg.lr, betas=(0.5, 0.999)
         )
         scheduler_g = torch.optim.lr_scheduler.MultiStepLR(
             optimizer_g, #
