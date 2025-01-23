@@ -4,6 +4,15 @@ import csv
 import glob
 import json
 import numpy as np
+from copy import deepcopy
+from typing import Any
+
+from monai.config import IndexSelection, KeysCollection, SequenceStr
+from monai.config.type_definitions import NdarrayOrTensor
+from monai.data.meta_tensor import MetaTensor
+from monai.transforms.inverse import InvertibleTransform
+from monai.transforms.traits import LazyTrait, MultiSampleTrait
+from monai.transforms.transform import LazyTransform, MapTransform, Randomizable
 
 from pprint import pprint
 from typing import Callable, Optional, Sequence, List, Dict
@@ -35,6 +44,9 @@ from monai.transforms import (
     RandSpatialCropDict,
     RandAxisFlipDict, 
     RandRotate90Dict, 
+    RandSpatialCrop,
+    RandCropDict,
+    RandCropByPosNegLabel,
     RandCropByPosNegLabelDict,
     RandSpatialCropSamplesDict,
     SpatialCropDict,
@@ -192,7 +204,7 @@ class LongestAxisCropDict(CropDict):
         return d
 
 
-class RandCropByColorDict(RandCropByPosNegLabelDict):
+class RandCropByColorDict(RandSpatialCropSamplesDict):
     """
     Custom transform to randomly crop image areas based on RGB values in the label image,
     focusing on areas that contain a significant amount of any distinct color.
@@ -200,42 +212,25 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
 
     def __init__(
         self,
-        keys: Sequence[str],
-        label_key: str,
-        spatial_size: Sequence[int] | int,
+        keys: KeysCollection,
+        roi_size: Sequence[int] | int,
         num_samples: int = 1,
+        max_roi_size: Sequence[int] | int | None = None,
+        random_center: bool = True,
+        random_size: bool = False,
+        allow_missing_keys: bool = False,
+        lazy: bool = False,
+        label_key: str | None = None,
+        image_key: str | None = None,
         color_area_threshold: float = 0.1,  # Threshold for distinct color area
         color_diff_threshold: float = 0.1,  # Allowable difference between RGB channels
-        allow_smaller: bool = False,
-        lazy: bool = False,
+        
     ) -> None:
-        super().__init__(
-            keys=keys,
-            label_key=label_key,
-            spatial_size=spatial_size,
-            pos=1.0,  # Not used directly
-            neg=1.0,  # Not used directly
-            num_samples=num_samples,
-            allow_smaller=allow_smaller,
-            lazy=lazy
-        )
+        super().__init__(keys, roi_size, num_samples, max_roi_size, random_center, random_size, allow_missing_keys=allow_missing_keys, lazy=lazy)
+        self.label_key = label_key
         self.color_area_threshold = color_area_threshold
         self.color_diff_threshold = color_diff_threshold
-
-    def randomize(
-        self,
-        label: Optional[torch.Tensor] = None,
-        fg_indices: Optional[np.ndarray] = None,
-        bg_indices: Optional[np.ndarray] = None,
-        image: Optional[torch.Tensor] = None,
-    ) -> None:
-        """
-        Randomizes the state for cropping based on the label and other inputs.
-        This method can be expanded based on specific requirements.
-        """
-        # Call the parent's randomize method to handle any base functionality
-        super().randomize(label=label, fg_indices=fg_indices, bg_indices=bg_indices, image=image)
-
+        
     def check_color(self, label: torch.Tensor) -> bool:
         """
         Check if the labeled regions contain a significant area of distinct colors
@@ -248,9 +243,9 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
 
         # Create a mask for pixels that have sufficient differences in any channel
         distinct_color_mask = (
-            (r_diff.abs() > self.color_diff_threshold) |
-            (g_diff.abs() > self.color_diff_threshold) |
-            (b_diff.abs() > self.color_diff_threshold)
+            (r_diff.abs().mean() > self.color_diff_threshold) |
+            (g_diff.abs().mean() > self.color_diff_threshold) |
+            (b_diff.abs().mean() > self.color_diff_threshold)
         )
 
         # Calculate total pixels in the patch
@@ -262,31 +257,66 @@ class RandCropByColorDict(RandCropByPosNegLabelDict):
         # Check if the area of distinct colored pixels exceeds the specified threshold
         return (colored_area / total_pixels) > self.color_area_threshold
 
-    def __call__(self, data: Mapping[Hashable, torch.Tensor], lazy: bool | None = None) -> List[dict[Hashable, torch.Tensor]]:
-        d = dict(data)
-
-        # Initialize returned list with shallow copy to preserve key ordering
-        ret: List[dict] = [dict(d) for _ in range(self.cropper.num_samples)]
-
+ 
+    def __call__(
+        self, data: Mapping[Hashable, torch.Tensor], lazy: bool | None = None
+    ) -> list[dict[Hashable, torch.Tensor]]:
+        
+        ret: list[dict[Hashable, torch.Tensor]] = [dict(data) for _ in range(self.cropper.num_samples)]
+        # deep copy all the unmodified data
         for i in range(self.cropper.num_samples):
-            max_attempts = 10  # Prevent infinite loop
-            attempts = 0
-            
-            while attempts < max_attempts:
-                sampled_data = super().__call__(data, lazy=lazy)[i]
-                label_patch = sampled_data[self.label_key]  # Get corresponding label patch
+            for key in set(data.keys()).difference(set(self.keys)):
+                ret[i][key] = deepcopy(data[key])
 
-                if self.check_color(label_patch):
-                    ret[i].update(sampled_data)
-                    break
-                
-                attempts += 1
-            
-            if attempts == max_attempts:
-                print(f"Warning: Maximum attempts reached for sample {i}. Returning default data.")
-                ret[i].update(sampled_data)  # Fallback to last sampled data
-
+        
+        max_attempts = 10  # Prevent infinite loop
+        attempts = 0
+        while attempts < max_attempts:
+            # for each key we reset the random state to ensure crops are the same
+            self.randomize()
+            lazy_ = self.lazy if lazy is None else lazy
+            for key in self.key_iterator(dict(data)):
+                self.cropper.set_random_state(seed=self.sub_seed)
+                for i, im in enumerate(self.cropper(data[key], lazy=lazy_)):
+                    if key==self.label_key:
+                        # print(im.shape)
+                        if self.check_color(im) or attempts == max_attempts:
+                            break
+                        attempts += 1
+                        # print(f"Warning: Maximum attempts reached for sample {i}. Returning default data.")           
+                ret[i][key] = im
         return ret
+    
+        # d = dict(data)
+        # # the first key must exist to execute random operations
+        # first_item = d[self.first_key(d)]
+        # self.randomize(first_item.peek_pending_shape() if isinstance(first_item, MetaTensor) else first_item.shape[1:])
+        # lazy_ = self.lazy if lazy is None else lazy
+        # if lazy_ is True and not isinstance(self.cropper, LazyTrait):
+        #     raise ValueError(
+        #         "'self.cropper' must inherit LazyTrait if lazy is True "
+        #         f"'self.cropper' is of type({type(self.cropper)}"
+        #     )
+
+        # max_attempts = 10  # Prevent infinite loop
+        # attempts = 0
+        # while attempts < max_attempts:
+        #     for key in self.key_iterator(d):
+        #         kwargs = {"randomize": False} if isinstance(self.cropper, Randomizable) else {}
+        #         if isinstance(self.cropper, LazyTrait):
+        #             kwargs["lazy"] = lazy_
+        #         d[key] = self.cropper(d[key], **kwargs)  # type: ignore
+        #         if key==self.label_key:
+        #             label_patch = d[key]
+        #             print(label_patch.shape)
+        #     if self.check_color(label_patch):
+        #         return d
+        #     attempts += 1
+        
+        #     if attempts == max_attempts:
+        #         print(f"Warning: Maximum attempts reached for sample {i}. Returning default data.")
+        #         return d
+     
 
     
 class PairedDataset(CacheDataset, Randomizable):
@@ -432,17 +462,22 @@ class PairedDataModule(LightningDataModule):
         set_determinism(seed=seed)
 
     def _get_dataloader(self, samples: Optional[int], shuffle: bool, data_type: str) -> ThreadDataLoader:
-        transform_pipeline = Compose([
+        randn_transform_pipeline = Compose([
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            # OneOf([
-            #     RandCropByColorDict(keys=["imageA", "imageB"], 
-            #                         label_key="imageB", 
-            #                         color_area_threshold=0.1,
-            #                         color_diff_threshold=100,
-            #                         spatial_size=self.img_shape),
-            #     RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
-            # ]),
+            RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", 
+                                color_area_threshold=0.5, color_diff_threshold=0.5,
+                                roi_size=self.img_shape, random_size=False),
+            # RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
+            RandAxisFlipDict(keys=["imageA", "imageB"], prob=0.75),
+            RandRotate90Dict(keys=["imageA", "imageB"], prob=0.75),
+            ScaleIntensityRangeDict(keys=["imageA", "imageB"], clip=True, a_min=0.0, a_max=255.0, b_min=0.0, b_max=1.0),
+            ToTensorDict(keys=["imageA", "imageB", "labelB"]),
+        ])
+
+        fixed_transform_pipeline = Compose([
+            LoadImageDict(keys=["imageA", "imageB"], image_only=True),
+            EnsureChannelFirstDict(keys=["imageA", "imageB"]),
             RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             RandAxisFlipDict(keys=["imageA", "imageB"], prob=0.75),
             RandRotate90Dict(keys=["imageA", "imageB"], prob=0.75),
@@ -460,7 +495,7 @@ class PairedDataModule(LightningDataModule):
             PairedDataset(
                 keys=["imageA", "imageB", "labelB"],
                 data=data_source,
-                transform=transform_pipeline,
+                transform=randn_transform_pipeline if data_type!="test" else fixed_transform_pipeline,
                 length=samples,
             ),
             batch_size=self.batch_size,
