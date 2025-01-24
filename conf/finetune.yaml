@@ -34,9 +34,10 @@ model:
 train:
   ckpt: ${resume_from_checkpoint}
   strict: 1 if ${resume_from_checkpoint} is not None else 0
-  lr: 5e-5
+  lr: 1e-4
   alpha: 10
   gamma: 1
+  delta: 0.01
   perceptual: false
   lamda: 2e-3
   batch_size: ${data.batch_size}
@@ -44,15 +45,15 @@ train:
   ema_decay: 0.9999 # `-1` disables it
 
 
-resume_from_checkpoint: logs/unet/version_2/checkpoints/epoch=322-validation_loss_epoch=1.00.ckpt
+resume_from_checkpoint: logs/unet/version_0/checkpoints/last.ckpt
 test: null
 
 
 trainer:
   accelerator: auto
   devices: -1
-  precision: '16-mixed'
-  strategy: auto
+  precision: 32
+  strategy: 'ddp_find_unused_parameters_true'
   max_epochs: ${train.epochs}
   enable_model_summary: true
   # amp_backend: apex
@@ -62,7 +63,7 @@ callbacks:
     monitor: "validation_loss_epoch"
     mode: "min"
     auto_insert_metric_name: true
-    save_top_k: 2
+    save_top_k: 4
     save_last: true
     filename: "{epoch}-{validation_loss_epoch:.2f}"
     # every_n_epochs: 20
@@ -72,8 +73,8 @@ callbacks:
     log_weight_decay: true
   - _target_: lightning.pytorch.callbacks.RichProgressBar
     refresh_rate: 1
-  - _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
-    swa_lrs: 1e-3  
+  # - _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+  #   swa_lrs: 1e-3  
 
 logger:
   - _target_: lightning.pytorch.loggers.TensorBoardLogger

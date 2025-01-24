@@ -188,7 +188,9 @@ class LightningModule(LightningModule):
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
         
-        r_loss = self.train_cfg.alpha * F.l1_loss((estimAB), (imageB)) 
+        r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+               + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
+        
         loss = r_loss
 
         if self.p20loss is not None:
