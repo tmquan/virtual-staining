@@ -268,23 +268,20 @@ class RandCropByColorDict(RandSpatialCropSamplesDict):
             for key in set(data.keys()).difference(set(self.keys)):
                 ret[i][key] = deepcopy(data[key])
 
-        
-        max_attempts = 10  # Prevent infinite loop
-        attempts = 0
-        while attempts < max_attempts:
+        # Flag to indicate if we should break the outer loop
+        stop = False    
+        for _ in range(10):
             # for each key we reset the random state to ensure crops are the same
             self.randomize()
             lazy_ = self.lazy if lazy is None else lazy
             for key in self.key_iterator(dict(data)):
                 self.cropper.set_random_state(seed=self.sub_seed)
-                for i, im in enumerate(self.cropper(data[key], lazy=lazy_)):
-                    if key==self.label_key:
-                        # print(im.shape)
-                        if self.check_color(im) or attempts == max_attempts:
-                            break
-                        attempts += 1
-                        # print(f"Warning: Maximum attempts reached for sample {i}. Returning default data.")           
-                ret[i][key] = im
+                for i, im in enumerate(self.cropper(data[key], lazy=lazy_)):   
+                    ret[i][key] = im
+                    if key==self.label_key and self.check_color(im):
+                        stop = True
+            if stop:
+                break  # Break outer loop if condition met
         return ret
     
         # d = dict(data)
@@ -465,10 +462,10 @@ class PairedDataModule(LightningDataModule):
         randn_transform_pipeline = Compose([
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", 
-                                color_area_threshold=0.5, color_diff_threshold=0.5,
-                                roi_size=self.img_shape, random_size=False),
-            # RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
+            # RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", 
+            #                     color_area_threshold=0.5, color_diff_threshold=0.5,
+            #                     roi_size=self.img_shape, random_size=False),
+            RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             RandAxisFlipDict(keys=["imageA", "imageB"], prob=0.75),
             RandRotate90Dict(keys=["imageA", "imageB"], prob=0.75),
             ScaleIntensityRangeDict(keys=["imageA", "imageB"], clip=True, a_min=0.0, a_max=255.0, b_min=0.0, b_max=1.0),

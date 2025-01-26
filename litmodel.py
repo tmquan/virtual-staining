@@ -67,11 +67,11 @@ class LightningModule(LightningModule):
 
         self.unetAB_model = DiffusionModelUNet(
             spatial_dims=2,
-            in_channels=3,
+            in_channels=1,
             out_channels=3,
-            channels=[128, 256, 256],
-            attention_levels=[True, True, True],
-            num_head_channels=[128, 256, 256],
+            channels=[128, 256, 256, 256],
+            attention_levels=[True, True, True, True],
+            num_head_channels=[128, 256, 256, 256],
             num_res_blocks=2,
             with_conditioning=True, 
             cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
@@ -152,8 +152,9 @@ class LightningModule(LightningModule):
         _device = image2d.device
         B = image2d.shape[0]
         timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
-        noise = torch.randn_like(image2d) 
         if AB:
+            image2d = image2d.mean(dim=1, keepdim=True)
+            noise = torch.randn_like(image2d)
             middle = self.inferer(
                 inputs=image2d, 
                 diffusion_model=self.unetAB_model, 
@@ -188,8 +189,11 @@ class LightningModule(LightningModule):
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
         
-        r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
-               + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
+        if self.current_epoch < 10:
+            r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) 
+        else:
+            r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+                   + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
         
         loss = r_loss
 
