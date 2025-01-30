@@ -67,7 +67,7 @@ class LightningModule(LightningModule):
 
         self.unetAB_model = DiffusionModelUNet(
             spatial_dims=2,
-            in_channels=1,
+            in_channels=3,
             out_channels=3,
             channels=[128, 256, 256, 256],
             attention_levels=[True, True, True, True],
@@ -153,7 +153,7 @@ class LightningModule(LightningModule):
         B = image2d.shape[0]
         timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
         if AB:
-            image2d = image2d.mean(dim=1, keepdim=True)
+            # image2d = image2d.mean(dim=1, keepdim=True)
             noise = torch.randn_like(image2d)
             middle = self.inferer(
                 inputs=image2d, 
@@ -189,11 +189,14 @@ class LightningModule(LightningModule):
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
         
-        if self.current_epoch < 10:
-            r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) 
-        else:
-            r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
-                   + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
+        r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+            #    + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
+        
+        # if self.current_epoch < 10:
+        #     r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) 
+        # else:
+        #     r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
+        #            + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
         
         loss = r_loss
 
@@ -219,22 +222,8 @@ class LightningModule(LightningModule):
         imageB = batch["imageB"]
         labelB = batch["labelB"].unsqueeze(-2) * 1.0
         _device = batch["imageA"].device
-        B = imageA.shape[0]
-
-        # A_to_B = torch.cat([torch.zeros_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
-        # B_to_A = torch.cat([torch.ones_like(labelB[...,[0]]), labelB[...,1:]], dim=-1) # Remove device prop, add direction
-
-        # estimAB = self.forward_pix2pix_condition(imageA, A_to_B)
-        # estimBA = self.forward_pix2pix_condition(imageB, B_to_A)
-
-        A_to_B = labelB
-        # B_to_A = labelB
-        
-        estimAB = self.forward_pix2pix_condition(imageA, A_to_B, AB=True)
-        # estimBA = self.forward_pix2pix_condition(imageB, B_to_A, AB=False)
-        
-        # estimABA = self.forward_pix2pix_condition(estimAB, B_to_A, AB=False)
-        # estimBAB = self.forward_pix2pix_condition(estimBA, A_to_B, AB=True)
+        B = imageA.shape[0]        
+        estimAB = self.forward_pix2pix_condition(imageA, labelB, AB=True)
 
         # print(imageA.shape, imageB.shape, labelB.shape)
         psnr = self.psnr(estimAB, imageB)

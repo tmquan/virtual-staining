@@ -37,17 +37,15 @@ train:
   lr: 1e-4
   alpha: 10
   gamma: 1
-  delta: 0.01
+  delta: 0.1
   perceptual: false
-  lamda: 2e-3
+  lamda: 0.1
   batch_size: ${data.batch_size}
-  epochs: 400
+  epochs: 10
   ema_decay: 0.9999 # `-1` disables it
-
 
 resume_from_checkpoint: null #TODO
 test: null
-
 
 trainer:
   accelerator: auto
@@ -73,8 +71,8 @@ callbacks:
     log_weight_decay: true
   - _target_: lightning.pytorch.callbacks.RichProgressBar
     refresh_rate: 1
-  # - _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
-  #   swa_lrs: 1e-3  
+  - _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+    swa_lrs: 1e-3  
 
 logger:
   - _target_: lightning.pytorch.loggers.TensorBoardLogger

@@ -233,30 +233,23 @@ class RandCropByColorDict(RandSpatialCropSamplesDict):
         
     def check_color(self, label: torch.Tensor) -> bool:
         """
-        Check if the labeled regions contain a significant area of distinct colors
-        exceeding the specified percentage of the total area.
+        If we look at an RGB color wheel, we see that purple and pink are next to each other. 
+        On the other side of color wheel, we have yellow and green. 
+        Since green is one of our 3 NumPy array RGB color channels, 
+        filtering out pixels that have a high green channel value can be one way to potentially filter out parts of the slide that are not pink or purple. 
+        This includes the white background, since white also has a high green channel value along with high red and blue channel values.
+        https://github.com/CODAIT/deep-histopath/blob/master/docs/wsi-preprocessing-in-python/index.md
         """
-        # Calculate differences between each channel
-        r_diff = label[[0]] - label[[1]]  # Difference between Red and Green
-        g_diff = label[[1]] - label[[2]]  # Difference between Green and Blue
-        b_diff = label[[2]] - label[[0]]  # Difference between Blue and Red
-
-        # Create a mask for pixels that have sufficient differences in any channel
-        distinct_color_mask = (
-            (r_diff.abs().mean() > self.color_diff_threshold) |
-            (g_diff.abs().mean() > self.color_diff_threshold) |
-            (b_diff.abs().mean() > self.color_diff_threshold)
-        )
-
-        # Calculate total pixels in the patch
-        total_pixels = label.shape[-1] * label.shape[-2]
+        green_mask = label[[1]] > self.color_diff_threshold
         
-        # Calculate area of distinct colored pixels
-        colored_area = distinct_color_mask.sum().item()
+        # Calculate total pixels in the patch
+        total_area = label.shape[-1] * label.shape[-2]
+        
+        # Calculate area of distinct green pixels
+        color_area = torch.logical_not(green_mask).sum().item()
 
-        # Check if the area of distinct colored pixels exceeds the specified threshold
-        return (colored_area / total_pixels) > self.color_area_threshold
-
+        # Check if the area of distinct green pixels exceeds the specified threshold
+        return (color_area / total_area) > self.color_area_threshold 
  
     def __call__(
         self, data: Mapping[Hashable, torch.Tensor], lazy: bool | None = None
@@ -462,9 +455,9 @@ class PairedDataModule(LightningDataModule):
         randn_transform_pipeline = Compose([
             LoadImageDict(keys=["imageA", "imageB"], image_only=True),
             EnsureChannelFirstDict(keys=["imageA", "imageB"]),
-            # RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", 
-            #                     color_area_threshold=0.5, color_diff_threshold=0.5,
-            #                     roi_size=self.img_shape, random_size=False),
+            RandCropByColorDict(keys=["imageA", "imageB"], label_key="imageB", 
+                color_area_threshold=0.2, color_diff_threshold=0.8,
+                roi_size=self.img_shape, random_size=False),
             RandSpatialCropDict(keys=["imageA", "imageB"], roi_size=self.img_shape, random_size=False),
             RandAxisFlipDict(keys=["imageA", "imageB"], prob=0.75),
             RandRotate90Dict(keys=["imageA", "imageB"], prob=0.75),
