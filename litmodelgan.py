@@ -80,7 +80,7 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
-        init_weights(self.unetAB_model, init_type="normal", init_gain=0.01)
+        init_weights(self.unetAB_model, init_type="normal", init_gain=0.02)
         
         # self.unetBA_model = DiffusionModelUNet(
         #     spatial_dims=2,
@@ -97,7 +97,7 @@ class LightningModule(LightningModule):
         #     use_combined_linear=True,
         #     dropout_cattn=0.5
         # )
-        # init_weights(self.unetBA_model, init_type="xavier", init_gain=0.01)
+        # init_weights(self.unetBA_model, init_type="xavier", init_gain=0.02)
 
         # self.p20loss = None
         self.p20loss = PerceptualLoss(
@@ -115,7 +115,7 @@ class LightningModule(LightningModule):
         #     out_channels=1,
         #     dropout=0.5
         # )
-        # init_weights(self.dnetAA_model, init_type="normal", init_gain=0.01)
+        # init_weights(self.dnetAA_model, init_type="normal", init_gain=0.02)
 
         self.dnetBB_model = PatchDiscriminator(
             spatial_dims=2, 
@@ -125,7 +125,7 @@ class LightningModule(LightningModule):
             out_channels=1,
             dropout=0.5
         )
-        init_weights(self.dnetBB_model, init_type="normal", init_gain=0.01)
+        # init_weights(self.dnetBB_model, init_type="normal", init_gain=0.02)
         self.adv_loss = PatchAdversarialLoss(criterion="least_squares")
 
         if model_cfg.phase=="finetune":
@@ -155,26 +155,27 @@ class LightningModule(LightningModule):
         _device = image2d.device
         B = image2d.shape[0]
         
-        if is_training:
-            timesteps = 1*torch.randint(0, 1000, (B,), device=_device).long() 
-        else:
-            timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
-        noise = torch.randn_like(image2d) 
-        timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
-        
         if AB:
-            # output = self.unetAB_model.forward(
-            #     image2d, 
-            #     timesteps=timesteps, 
-            #     context=context
-            # )
-            output = self.inferer(
-                inputs=image2d, 
-                diffusion_model=self.unetAB_model, 
-                noise=noise, 
+            timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
+            output = self.unetAB_model.forward(
+                image2d, 
                 timesteps=timesteps, 
-                condition=context
+                context=context
             )
+            
+            # if is_training:
+            #     timesteps = 1*torch.randint(0, 1000, (B,), device=_device).long() 
+            # else:
+            #     timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
+            # noise = torch.randn_like(image2d) 
+
+            # output = self.inferer(
+            #     inputs=image2d, 
+            #     diffusion_model=self.unetAB_model, 
+            #     noise=noise, 
+            #     timesteps=timesteps, 
+            #     condition=context
+            # )
         else:
             pass
         return output
@@ -203,7 +204,7 @@ class LightningModule(LightningModule):
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
 
         r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
-               + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
+            #    + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
         
         if stage=="train":
             # Generator
