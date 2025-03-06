@@ -8,20 +8,28 @@ defaults:
   - override hydra/job_logging: disabled
 
 data:
-  root_folder: "data/ACT2_co-register/"
+  root_folder: data/ACT2_co-register/
   train_folders:
   - Subject2_Slide2
   - Subject4_Slide4AIN1
   val_folders:
   - Subject1_Slide1
   test_folders:
-  - Subject1_Slide1
-  train_samples: 8000
-  val_samples: 800
-  test_samples: null
+  # - Subject1_Slide1/Session1
+  # - Subject1_Slide1/Session1/Acquisition1_NanoZoomer_20X_noparaffin_aqueouscoverslip_BF
+  # - Subject1_Slide1/Session1/Acquisition2_NanoZoomer_20X_noparaffin_nonaqueouscoverslip_BF
+  # - Subject1_Slide1/Session1/Acquisition3_NanoZoomer_20X_noparaffin_uncoverslip_BF
+  # - Subject1_Slide1/Session1/Acquisition4_NanoZoomer_20X_paraffin_uncoverslip_BF
+  # - Subject1_Slide1/Session1/Acquisition5_NanoZoomer_40X_noparaffin_aqueouscoverslip_BF
+  # - Subject1_Slide1/Session1/Acquisition6_NanoZoomer_40X_noparaffin_nonaqueouscoverslip_BF
+  # - Subject1_Slide1/Session1/Acquisition7_NanoZoomer_40X_noparaffin_uncoverslip_BF
+  - Subject1_Slide1/Session1/Acquisition8_MISSING_NanoZoomer_40X_paraffin_uncoverslip_BF
+  train_samples: 2000
+  val_samples: 400
+  test_samples: 1000
   img_shape: 512
   vol_shape: 512
-  batch_size: 4
+  batch_size: 1
 
 model:
   phase: "unet"
@@ -44,8 +52,9 @@ train:
   epochs: 400
   ema_decay: 0.9999 # `-1` disables it
 
-resume_from_checkpoint: null #TODO
-test: null
+resume_from_checkpoint: 'logs/unet/version_0/checkpoints/last.ckpt'
+# resume_from_checkpoint: 'logs/unet/version_0/checkpoints/epoch=330-validation_loss_epoch=1.36.ckpt'
+test: true
 
 trainer:
   accelerator: auto
@@ -76,6 +85,6 @@ callbacks:
 
 logger:
   - _target_: lightning.pytorch.loggers.TensorBoardLogger
-    save_dir: "./logs"
+    save_dir: "./logs_test"
     log_graph: true
     name: ${model.phase}

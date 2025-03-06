@@ -69,9 +69,9 @@ class LightningModule(LightningModule):
             spatial_dims=2,
             in_channels=3,
             out_channels=3,
-            channels=[128, 256, 256, 256],
-            attention_levels=[True, True, True, True],
-            num_head_channels=[128, 256, 256, 256],
+            channels=[256, 256, 512, 512],
+            attention_levels=[False, False, False, True],
+            num_head_channels=[128, 256, 512, 512],
             num_res_blocks=2,
             with_conditioning=True, 
             cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
@@ -80,7 +80,7 @@ class LightningModule(LightningModule):
             use_combined_linear=True,
             dropout_cattn=0.5
         )
-        init_weights(self.unetAB_model, init_type="normal", init_gain=0.01)
+        init_weights(self.unetAB_model, init_type="normal", init_gain=0.1)
         self.swinAB_model = None
         # self.swinAB_model = SwinUNETR(
         #     spatial_dims=2,
@@ -156,7 +156,7 @@ class LightningModule(LightningModule):
             # image2d = image2d.mean(dim=1, keepdim=True)
             noise = torch.randn_like(image2d)
             middle = self.inferer(
-                inputs=image2d, 
+                inputs=image2d.mean(dim=1, keepdim=True).repeat(1,3,1,1), 
                 diffusion_model=self.unetAB_model, 
                 noise=noise, 
                 timesteps=timesteps, 

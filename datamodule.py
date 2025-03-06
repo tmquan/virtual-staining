@@ -249,7 +249,7 @@ class RandCropByColorDict(RandSpatialCropSamplesDict):
         color_area = torch.logical_not(green_mask).sum().item()
 
         # Check if the area of distinct green pixels exceeds the specified threshold
-        return (color_area / total_area) > self.color_area_threshold 
+        return (color_area / total_area) > self.m 
  
     def __call__(
         self, data: Mapping[Hashable, torch.Tensor], lazy: bool | None = None
@@ -418,7 +418,7 @@ class PairedDataModule(LightningDataModule):
             print("Saved image pairs to data.json")
 
     def _load_pairs_from_folder(self, folder: str, image_pair_list: List[Dict]):
-        folders = glob.glob(os.path.join(folder, '*/**/'), recursive=True)
+        folders = glob.glob(os.path.join(folder, '**/'), recursive=True)
         for subdir in folders:
             image_files = glob.glob(os.path.join(subdir, "*.tiff"))
             
