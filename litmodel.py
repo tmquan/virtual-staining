@@ -20,7 +20,7 @@ from monai.utils import optional_import
 from monai.networks.nets import UNet, VNet, UNETR, SwinUNETR, BasicUNet, PatchDiscriminator, DenseNet121
 from monai.inferers import DiffusionInferer
 from monai.networks.nets import DiffusionModelUNet
-from monai.networks.schedulers import DDPMScheduler
+from monai.networks.schedulers import DDPMScheduler, DDIMScheduler
 from monai.losses.adversarial_loss import PatchAdversarialLoss
 
 from typing import Any, Callable, Dict, Optional, OrderedDict, Tuple, List
@@ -69,9 +69,9 @@ class LightningModule(LightningModule):
             spatial_dims=2,
             in_channels=3,
             out_channels=3,
-            channels=[256, 256, 512, 512],
-            attention_levels=[False, False, False, True],
-            num_head_channels=[128, 256, 512, 512],
+            channels=[256, 256, 512],
+            attention_levels=[False, False, True],
+            num_head_channels=[256, 256, 512],
             num_res_blocks=2,
             with_conditioning=True, 
             cross_attention_dim=4, # Condition with dist, elev, azim, fov;  straight/hidden view  # flatR | flatT
@@ -117,14 +117,32 @@ class LightningModule(LightningModule):
         # )
 
         # init_weights(self.unetBA_model, init_type="xavier", init_gain=0.01)
-        # self.p20loss = None
-        self.p20loss = PerceptualLoss(
-            spatial_dims=2, 
-            network_type="resnet50", 
-            is_fake_3d=False, 
-            pretrained=True,
-        ).eval() 
+        self.p20loss = None
+        # self.p20loss = PerceptualLoss(
+        #     spatial_dims=2, 
+        #     network_type="resnet50", 
+        #     is_fake_3d=False, 
+        #     pretrained=True,
+        # ).eval() 
         
+        self.ddpmsch = DDPMScheduler(
+            num_train_timesteps=self.model_cfg.timesteps,
+            prediction_type=self.model_cfg.prediction_type,
+            schedule="scaled_linear_beta",
+            beta_start=0.0005,
+            beta_end=0.0195,
+        )
+
+        self.ddimsch = DDIMScheduler(
+            num_train_timesteps=self.model_cfg.timesteps,
+            prediction_type=self.model_cfg.prediction_type,
+            schedule="scaled_linear_beta",
+            beta_start=0.0005,
+            beta_end=0.0195,
+        )
+
+        self.inferer = DiffusionInferer(scheduler=self.ddimsch)
+
         if model_cfg.phase=="finetune":
             pass
         
@@ -139,8 +157,8 @@ class LightningModule(LightningModule):
         self.train_step_outputs = []
         self.validation_step_outputs = []
 
-        self.scheduler = DDPMScheduler(num_train_timesteps=model_cfg.timesteps)
-        self.inferer = DiffusionInferer(self.scheduler)
+        # self.scheduler = DDPMScheduler(num_train_timesteps=model_cfg.timesteps)
+        # self.inferer = DiffusionInferer(self.scheduler)
         self.psnr = PSNRMetric(max_val=1.0)
         self.ssim = SSIMMetric(spatial_dims=2, data_range=1.0)
         self.psnr_outputs = []
@@ -151,12 +169,13 @@ class LightningModule(LightningModule):
     def forward_pix2pix_condition(self, image2d, context, AB=True, noise=None, is_training=False):
         _device = image2d.device
         B = image2d.shape[0]
-        timesteps = 0*torch.randint(0, 1000, (B,), device=_device).long() 
+        timesteps = 1*torch.randint(0, 1000, (B,), device=_device).long() 
         if AB:
             # image2d = image2d.mean(dim=1, keepdim=True)
-            noise = torch.randn_like(image2d)
+            if noise is None:
+                noise = torch.randn_like(image2d)
             middle = self.inferer(
-                inputs=image2d.mean(dim=1, keepdim=True).repeat(1,3,1,1), 
+                inputs=image2d, 
                 diffusion_model=self.unetAB_model, 
                 noise=noise, 
                 timesteps=timesteps, 
@@ -177,20 +196,30 @@ class LightningModule(LightningModule):
         _device = batch["imageA"].device
         B = imageA.shape[0]
         
-        estimAB = self.forward_pix2pix_condition(imageA, labelB, AB=True, is_training=(stage=="train"))
+        estimAB = self.forward_pix2pix_condition(imageB, labelB, noise=imageA, AB=True, is_training=(stage=="train"))
 
         # Visualization step
         if batch_idx == 0:
             # Sampling step for X-ray
             zeros = torch.zeros_like(imageA)
+            sample = imageA
+            self.ddimsch.set_timesteps(num_inference_steps=self.model_cfg.timesteps//10)
+            sample = self.inferer.sample(
+                input_noise=sample,
+                scheduler=self.ddimsch,
+                diffusion_model=self.unetAB_model,
+                conditioning=labelB,
+                verbose=False,
+            )
             with torch.no_grad():
-                viz2d = torch.cat([imageA, imageB, estimAB], dim=-1)
+                viz2d = torch.cat([imageA, imageB, sample], dim=-1)
                 tensorboard = self.logger.experiment
                 grid2d = torchvision.utils.make_grid(viz2d, normalize=False, scale_each=False, nrow=1, padding=0).clamp(0, 1)
                 tensorboard.add_image(f"{stage}_df_samples", grid2d, self.current_epoch * B + batch_idx)  
         
-        r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) \
-            #    + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
+        r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) 
+        
+        #    + self.train_cfg.alpha * F.l1_loss( rgb_to_hsv(estimAB), rgb_to_hsv(imageB) )
         
         # if self.current_epoch < 10:
         #     r_loss = self.train_cfg.alpha * F.l1_loss(estimAB, imageB) 

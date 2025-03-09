@@ -19,8 +19,8 @@ data:
   train_samples: 8000
   val_samples: 800
   test_samples: null
-  img_shape: 512
-  vol_shape: 512
+  img_shape: 400
+  vol_shape: 400
   batch_size: 4
 
 model:

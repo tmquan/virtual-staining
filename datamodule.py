@@ -249,7 +249,7 @@ class RandCropByColorDict(RandSpatialCropSamplesDict):
         color_area = torch.logical_not(green_mask).sum().item()
 
         # Check if the area of distinct green pixels exceeds the specified threshold
-        return (color_area / total_area) > self.m 
+        return (color_area / total_area) > self.color_area_threshold 
  
     def __call__(
         self, data: Mapping[Hashable, torch.Tensor], lazy: bool | None = None
